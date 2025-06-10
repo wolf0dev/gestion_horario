@@ -249,7 +249,7 @@ export default function GenericTable({
             {paginatedData.length > 0 ? (
               paginatedData.map((row, index) => {
                 return (
-                  <TableRow hover role="checkbox" tabIndex={-1} key={index}>
+                  <TableRow hover role="checkbox\" tabIndex={-1} key={index}>
                     {columns.map((column) => {
                       const value = row[column.id];
                       return (
