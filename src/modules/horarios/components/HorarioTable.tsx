@@ -10,7 +10,8 @@ import {
   TableHead,
   TableRow,
   IconButton,
-  useTheme
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -53,6 +54,8 @@ const HorarioTable = ({
   isForPrint = false,
 }: HorarioTableProps) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
   }, [horarios, trayectos, diasSemana, bloquesHorarios]);
@@ -93,30 +96,77 @@ const HorarioTable = ({
     return colors[index];
   };
 
+  // Configuración responsiva para el tamaño de las celdas
+  const cellWidth = isForPrint ? 150 : (isSmall ? 120 : isMobile ? 140 : 150);
+  const cellHeight = isForPrint ? 100 : (isSmall ? 80 : isMobile ? 90 : 100);
+  const headerCellWidth = isForPrint ? 120 : (isSmall ? 80 : isMobile ? 100 : 120);
+
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
-      <Paper sx={{ width: '97%', overflow: 'hidden', borderRadius: 2, boxShadow: 5 }}>
-        <Box sx={{ p: 2, bgcolor: theme.palette.primary.main, color: 'white', textAlign: 'center' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+    <Box sx={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      width: '100%',
+      px: { xs: 1, sm: 2 }
+    }}>
+      <Paper sx={{ 
+        width: '100%', 
+        maxWidth: isForPrint ? 'none' : '100%',
+        overflow: 'hidden', 
+        borderRadius: 2, 
+        boxShadow: 5 
+      }}>
+        <Box sx={{ 
+          p: { xs: 1, sm: 2 }, 
+          bgcolor: theme.palette.primary.main, 
+          color: 'white', 
+          textAlign: 'center' 
+        }}>
+          <Typography 
+            variant={isMobile ? "subtitle1" : "h6"} 
+            sx={{ 
+              fontWeight: 600,
+              fontSize: { xs: '1rem', sm: '1.25rem' }
+            }}
+          >
             Horario - {trayectos[tabValue]?.nombre || 'Seleccione un trayecto'}
           </Typography>
         </Box>
 
-        <TableContainer sx={{ maxHeight: isForPrint ? 'none' : 800 }}>
-          <Table stickyHeader={!isForPrint}>
+        <TableContainer sx={{ 
+          maxHeight: isForPrint ? 'none' : (isMobile ? 600 : 800),
+          overflowX: 'auto'
+        }}>
+          <Table 
+            stickyHeader={!isForPrint}
+            sx={{
+              minWidth: isForPrint ? 'auto' : (isSmall ? 600 : 800)
+            }}
+          >
             <TableHead>
               <TableRow>
                 <TableCell
                   sx={{
                     fontWeight: 'bold',
                     backgroundColor: theme.palette.grey[100],
-                    width: 120,
+                    width: headerCellWidth,
+                    minWidth: headerCellWidth,
                     borderRight: `1px solid ${theme.palette.divider}`,
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    p: { xs: 1, sm: 2 }
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                    <ClockIcon size={18} />
-                    Horario
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 0.5, 
+                    justifyContent: 'center',
+                    flexDirection: { xs: 'column', sm: 'row' }
+                  }}>
+                    <ClockIcon size={isSmall ? 14 : 18} />
+                    <Typography variant="caption" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                      Horario
+                    </Typography>
                   </Box>
                 </TableCell>
                 {diasSemana.map((dia) => (
@@ -126,11 +176,14 @@ const HorarioTable = ({
                     sx={{
                       fontWeight: 'bold',
                       backgroundColor: theme.palette.grey[100],
-                      width: 150,
+                      width: cellWidth,
+                      minWidth: cellWidth,
                       borderRight: `1px solid ${theme.palette.divider}`,
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      p: { xs: 0.5, sm: 1 }
                     }}
                   >
-                    {dia.nombre_dia}
+                    {isSmall ? dia.abreviacion || dia.nombre_dia.substring(0, 3) : dia.nombre_dia}
                   </TableCell>
                 ))}
               </TableRow>
@@ -144,14 +197,31 @@ const HorarioTable = ({
                       backgroundColor: theme.palette.grey[50],
                       borderRight: `1px solid ${theme.palette.divider}`,
                       verticalAlign: 'top',
-                      py: 2,
-                      width: 120,
+                      py: { xs: 1, sm: 2 },
+                      px: { xs: 0.5, sm: 1 },
+                      width: headerCellWidth,
+                      minWidth: headerCellWidth,
                     }}
                   >
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, textAlign: 'center' }}>
+                    <Typography 
+                      variant="subtitle2" 
+                      sx={{ 
+                        fontWeight: 700, 
+                        textAlign: 'center',
+                        fontSize: { xs: '0.7rem', sm: '0.875rem' }
+                      }}
+                    >
                       {bloque.nombre_bloque}
                     </Typography>
-                    <Typography variant="caption" color="textSecondary" sx={{ textAlign: 'center', display: 'block' }}>
+                    <Typography 
+                      variant="caption" 
+                      color="textSecondary" 
+                      sx={{ 
+                        textAlign: 'center', 
+                        display: 'block',
+                        fontSize: { xs: '0.6rem', sm: '0.75rem' }
+                      }}
+                    >
                       {bloque.hora_inicio.substring(0, 5)} - {bloque.hora_fin.substring(0, 5)}
                     </Typography>
                   </TableCell>
@@ -165,14 +235,15 @@ const HorarioTable = ({
                         sx={{
                           cursor: !isForPrint ? 'pointer' : 'default',
                           backgroundColor: horario ? getColorForUC(horario.uc_nombre) : 'transparent',
-                          p: 1,
-                          width: 150,
-                          height: 100,
+                          p: { xs: 0.5, sm: 1 },
+                          width: cellWidth,
+                          minWidth: cellWidth,
+                          height: cellHeight,
                           '&:hover': !isForPrint ? {
                             backgroundColor: horario
                               ? `${getColorForUC(horario.uc_nombre)}CC`
                               : theme.palette.action.hover,
-                            transform: 'scale(1.05)',
+                            transform: isMobile ? 'none' : 'scale(1.02)',
                           } : {},
                           borderRadius: 1,
                           border: horario ? 'none' : (!isForPrint ? `2px dashed ${theme.palette.grey[300]}` : 'none'),
@@ -189,6 +260,7 @@ const HorarioTable = ({
                             alignItems: 'center',
                             justifyContent: 'center',
                             height: '100%',
+                            gap: { xs: 0.25, sm: 0.5 }
                           }}>
                             <Typography
                               variant="subtitle2"
@@ -196,20 +268,28 @@ const HorarioTable = ({
                                 fontWeight: 'bold',
                                 color: 'white',
                                 textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
-                                mb: 0.5,
+                                fontSize: { xs: '0.65rem', sm: '0.875rem' },
+                                lineHeight: 1.1,
+                                mb: 0.25,
                               }}
                             >
-                              {horario.uc_nombre}
+                              {isSmall && horario.uc_nombre.length > 15 
+                                ? `${horario.uc_nombre.substring(0, 15)}...` 
+                                : horario.uc_nombre}
                             </Typography>
                             <Typography
                               variant="body2"
                               sx={{
                                 color: 'white',
                                 textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
-                                mb: 0.5,
+                                fontSize: { xs: '0.6rem', sm: '0.75rem' },
+                                lineHeight: 1.1,
+                                mb: 0.25,
                               }}
                             >
-                              👨‍🏫 {horario.profesor_nombre}
+                              👨‍🏫 {isSmall && horario.profesor_nombre.length > 12 
+                                ? `${horario.profesor_nombre.substring(0, 12)}...` 
+                                : horario.profesor_nombre}
                             </Typography>
                             <Typography
                               variant="caption"
@@ -217,12 +297,21 @@ const HorarioTable = ({
                                 color: 'white',
                                 textShadow: '1px 1px 2px rgba(0,0,0,0.7)',
                                 display: 'block',
+                                fontSize: { xs: '0.55rem', sm: '0.7rem' },
+                                lineHeight: 1.1,
                               }}
                             >
                               🏫 {horario.aula_nombre}
                             </Typography>
                             {!isForPrint && (
-                              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center', gap: 0.5 }}>
+                              <Box sx={{ 
+                                mt: 0.5, 
+                                display: 'flex', 
+                                justifyContent: 'center', 
+                                gap: 0.25,
+                                opacity: { xs: 1, sm: 0.8 },
+                                '&:hover': { opacity: 1 }
+                              }}>
                                 <IconButton
                                   size="small"
                                   onClick={(e) => {
@@ -232,10 +321,12 @@ const HorarioTable = ({
                                   sx={{
                                     bgcolor: 'rgba(255,255,255,0.2)',
                                     color: 'white',
+                                    width: { xs: 20, sm: 24 },
+                                    height: { xs: 20, sm: 24 },
                                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
                                   }}
                                 >
-                                  <EditIcon size={14} />
+                                  <EditIcon size={isSmall ? 10 : 14} />
                                 </IconButton>
                                 <IconButton
                                   size="small"
@@ -246,10 +337,12 @@ const HorarioTable = ({
                                   sx={{
                                     bgcolor: 'rgba(255,0,0,0.2)',
                                     color: 'white',
+                                    width: { xs: 20, sm: 24 },
+                                    height: { xs: 20, sm: 24 },
                                     '&:hover': { bgcolor: 'rgba(255,0,0,0.3)' },
                                   }}
                                 >
-                                  <TrashIcon size={14} />
+                                  <TrashIcon size={isSmall ? 10 : 14} />
                                 </IconButton>
                               </Box>
                             )}

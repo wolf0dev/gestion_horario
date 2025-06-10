@@ -54,36 +54,43 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
   open?: boolean;
 }>(({ theme, open }) => ({
   flexGrow: 1,
-  padding: theme.spacing(3),
+  padding: theme.spacing(2),
   transition: theme.transitions.create('margin', {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
-  marginLeft: `-${drawerWidth}px`,
-  ...(open && {
-    transition: theme.transitions.create('margin', {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
+  marginLeft: 0,
+  [theme.breakpoints.up('md')]: {
+    padding: theme.spacing(3),
+    marginLeft: open ? 0 : `-${drawerWidth}px`,
+    ...(open && {
+      transition: theme.transitions.create('margin', {
+        easing: theme.transitions.easing.easeOut,
+        duration: theme.transitions.duration.enteringScreen,
+      }),
+      marginLeft: 0,
     }),
-    marginLeft: 0,
-  }),
+  },
 }));
 
 const AppBarStyled = styled(AppBar, { shouldForwardProp: (prop) => prop !== 'open' })<{
   open?: boolean;
 }>(({ theme, open }) => ({
+  zIndex: theme.zIndex.drawer + 1,
   transition: theme.transitions.create(['margin', 'width'], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
-  ...(open && {
-    width: `calc(100% - ${drawerWidth}px)`,
-    marginLeft: `${drawerWidth}px`,
-    transition: theme.transitions.create(['margin', 'width'], {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
+  [theme.breakpoints.up('md')]: {
+    ...(open && {
+      width: `calc(100% - ${drawerWidth}px)`,
+      marginLeft: `${drawerWidth}px`,
+      transition: theme.transitions.create(['margin', 'width'], {
+        easing: theme.transitions.easing.easeOut,
+        duration: theme.transitions.duration.enteringScreen,
+      }),
     }),
-  }),
+  },
 }));
 
 const DrawerHeader = styled('div')(({ theme }) => ({
@@ -184,7 +191,11 @@ export default function MainLayout() {
           <ListItemButton
             component={hasChildren ? "div" : "a"}
             href={hasChildren ? undefined : item.path}
-            onClick={hasChildren ? () => toggleSubmenu(item.text) : undefined}
+            onClick={hasChildren ? () => toggleSubmenu(item.text) : () => {
+              if (isMobile) {
+                handleDrawerClose();
+              }
+            }}
             sx={{
               pl: 2 + level * 2,
               '&:hover': {
@@ -215,24 +226,39 @@ export default function MainLayout() {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBarStyled position="fixed" open={open}>
+      <AppBarStyled position="fixed" open={open && !isMobile}>
         <Toolbar>
           <IconButton
             color="inherit"
             aria-label="abrir menú"
             onClick={handleDrawerOpen}
             edge="start"
-            sx={{ mr: 2, ...(open && { display: 'none' }) }}
+            sx={{ 
+              mr: 2, 
+              ...(open && !isMobile && { display: 'none' }) 
+            }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Gestión de Horarios UBV
+          <Typography 
+            variant="h6" 
+            noWrap 
+            component="div" 
+            sx={{ 
+              flexGrow: 1,
+              fontSize: { xs: '1rem', sm: '1.25rem' }
+            }}
+          >
+            {isMobile ? 'UBV Horarios' : 'Gestión de Horarios UBV'}
           </Typography>
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Abrir opciones">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt={user?.username} src="/static/images/avatar/default.jpg" />
+                <Avatar 
+                  alt={user?.username} 
+                  src="/static/images/avatar/default.jpg"
+                  sx={{ width: { xs: 32, sm: 40 }, height: { xs: 32, sm: 40 } }}
+                />
               </IconButton>
             </Tooltip>
             <Menu
@@ -280,6 +306,9 @@ export default function MainLayout() {
         anchor="left"
         open={open}
         onClose={handleDrawerClose}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
       >
         <DrawerHeader>
           <Typography variant="h6" sx={{ flexGrow: 1, ml: 2 }}>
@@ -294,7 +323,7 @@ export default function MainLayout() {
           {menuStructure.map((item) => renderMenuItem(item))}
         </List>
       </Drawer>
-      <Main open={open}>
+      <Main open={open && !isMobile}>
         <DrawerHeader />
         <Outlet />
       </Main>

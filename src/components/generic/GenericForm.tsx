@@ -19,6 +19,8 @@ import {
   IconButton,
   Stack,
   Divider,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { Save as SaveIcon, X as CloseIcon } from 'lucide-react';
 
@@ -64,6 +66,8 @@ const GenericForm = ({
   isLoading = false,
   validationSchema: customValidationSchema,
 }: GenericFormProps) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [generatedValidationSchema, setGeneratedValidationSchema] = useState<any>(null);
 
   // Generar esquema de validación a partir de las definiciones de los campos
@@ -130,6 +134,7 @@ const GenericForm = ({
       placeholder: field.placeholder,
       disabled: field.disabled || isLoading,
       margin: 'normal' as const,
+      size: isMobile ? 'small' as const : 'medium' as const,
     };
 
     switch (field.type) {
@@ -151,6 +156,7 @@ const GenericForm = ({
                 fullWidth={field.fullWidth !== false}
                 margin="normal"
                 error={meta.touched && meta.error ? true : false}
+                size={isMobile ? 'small' : 'medium'}
               >
                 <InputLabel id={`${field.name}-label`}>{field.label}</InputLabel>
                 <Select
@@ -186,6 +192,7 @@ const GenericForm = ({
                       name={field.name}
                       disabled={field.disabled || isLoading}
                       color="primary"
+                      size={isMobile ? 'small' : 'medium'}
                     />
                   }
                   label={field.label}
@@ -207,13 +214,27 @@ const GenericForm = ({
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" component="h2">
-          {title}
-        </Typography>
-        <Divider sx={{ mt: 1 }} />
-      </Box>
+    <Paper 
+      elevation={3} 
+      sx={{ 
+        p: { xs: 2, sm: 3 }, 
+        borderRadius: 2,
+        maxWidth: '100%',
+        overflow: 'hidden'
+      }}
+    >
+      {title && (
+        <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+          <Typography 
+            variant={isMobile ? "h6" : "h5"} 
+            component="h2"
+            sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}
+          >
+            {title}
+          </Typography>
+          <Divider sx={{ mt: 1 }} />
+        </Box>
+      )}
 
       {generatedValidationSchema ? (
         <Formik
@@ -224,12 +245,12 @@ const GenericForm = ({
         >
           {({ errors, touched, isSubmitting }) => (
             <Form>
-              <Grid container spacing={2}>
+              <Grid container spacing={{ xs: 1, sm: 2 }}>
                 {fields.map((field) => (
                   <Grid
                     item
                     xs={field.xs || 12}
-                    sm={field.sm || 6}
+                    sm={field.sm || (isMobile ? 12 : 6)}
                     md={field.md || 4}
                     lg={field.lg || 4}
                     xl={field.xl || 3}
@@ -239,17 +260,25 @@ const GenericForm = ({
                     <ErrorMessage
                       name={field.name}
                       component={Typography}
-                      sx={{ color: 'error.main', fontSize: '0.75rem', mt: 0.5, ml: 1 }}
+                      sx={{ 
+                        color: 'error.main', 
+                        fontSize: { xs: '0.7rem', sm: '0.75rem' }, 
+                        mt: 0.5, 
+                        ml: 1 
+                      }}
                     />
                   </Grid>
                 ))}
               </Grid>
 
               <Stack
-                direction="row"
+                direction={{ xs: 'column', sm: 'row' }}
                 spacing={2}
                 justifyContent="flex-end"
-                sx={{ mt: 4 }}
+                sx={{ 
+                  mt: { xs: 3, sm: 4 },
+                  gap: { xs: 1, sm: 2 }
+                }}
               >
                 {onCancel && (
                   <Button
@@ -257,6 +286,8 @@ const GenericForm = ({
                     onClick={onCancel}
                     startIcon={<CloseIcon size={18} />}
                     disabled={isSubmitting || isLoading}
+                    size={isMobile ? 'small' : 'medium'}
+                    fullWidth={isMobile}
                   >
                     Cancelar
                   </Button>
@@ -268,12 +299,14 @@ const GenericForm = ({
                   color="primary"
                   startIcon={
                     isSubmitting || isLoading ? (
-                      <CircularProgress size={20} color="inherit" />
+                      <CircularProgress size={16} color="inherit" />
                     ) : (
                       <SaveIcon size={18} />
                     )
                   }
                   disabled={isSubmitting || isLoading}
+                  size={isMobile ? 'small' : 'medium'}
+                  fullWidth={isMobile}
                 >
                   {submitButtonText}
                 </Button>
