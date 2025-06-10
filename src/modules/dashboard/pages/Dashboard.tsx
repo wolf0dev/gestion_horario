@@ -4,6 +4,7 @@ import {
   Typography,
   Grid,
   useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Users as UsersIcon,
@@ -19,6 +20,7 @@ import StatCard from '../components/StatCard';
 const Dashboard = () => {
   const { user } = useAuth();
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [stats, setStats] = useState({
     profesores: 0,
     aulas: 0,
@@ -30,7 +32,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [profesoresRes, aulasRes, ucRes, horariosRes] = await Promise.all([
+        const [profesoresRes, aulasRes, ucRes] = await Promise.all([
           api.get('/api/profesores/todos'),
           api.get('/api/aulas/todas'),
           api.get('/api/unidades-curriculares/todas'),
@@ -55,50 +57,52 @@ const Dashboard = () => {
     { 
       title: 'Profesores', 
       value: stats.profesores, 
-      icon: <UsersIcon size={24} color={theme.palette.primary.main} />, 
+      icon: <UsersIcon size={isMobile ? 20 : 24} color={theme.palette.primary.main} />, 
       color: 'primary' 
     },
     { 
       title: 'Aulas', 
       value: stats.aulas, 
-      icon: <HomeIcon size={24} color={theme.palette.secondary.main} />, 
+      icon: <HomeIcon size={isMobile ? 20 : 24} color={theme.palette.secondary.main} />, 
       color: 'secondary' 
     },
     { 
       title: 'Unidades Curriculares', 
       value: stats.unidadesCurriculares, 
-      icon: <BookIcon size={24} color={theme.palette.success.main} />, 
+      icon: <BookIcon size={isMobile ? 20 : 24} color={theme.palette.success.main} />, 
       color: 'success' 
     },
   ];
 
-  const recentActivities = [
-    { text: 'Se actualizó el horario de Matemáticas I', date: '30 minutos atrás', type: 'update' as const },
-    { text: 'Se agregó un nuevo profesor: María Rodríguez', date: '2 horas atrás', type: 'add' as const },
-    { text: 'Se asignó el aula A205 para Física II', date: '4 horas atrás', type: 'assign' as const },
-    { text: 'Se creó un nuevo horario para Informática', date: '1 día atrás', type: 'create' as const },
-    { text: 'Se actualizó la disponibilidad del profesor Carlos López', date: '2 días atrás', type: 'update' as const },
-  ];
-
   return (
-    <Box sx={{ flexGrow: 1, py: 3 }}>
+    <Box sx={{ 
+      flexGrow: 1, 
+      py: { xs: 2, sm: 3 },
+      px: { xs: 1, sm: 0 }
+    }}>
       {user && (
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h2" component="h2">
+        <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+          <Typography 
+            variant={isMobile ? "h4" : "h2"} 
+            component="h2"
+            sx={{
+              fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
+              textAlign: { xs: 'center', sm: 'left' }
+            }}
+          >
             Bienvenido, {user.username}
           </Typography>
         </Box>
       )}
 
       {/* Estadísticas */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
         {statsData.map((stat, index) => (
           <Grid item xs={12} sm={6} md={4} key={index}>
             <StatCard {...stat} />
           </Grid>
         ))}
       </Grid>
-
     </Box>
   );
 };

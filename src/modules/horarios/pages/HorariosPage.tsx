@@ -6,6 +6,8 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -46,6 +48,8 @@ interface HorarioForm {
 }
 
 const HorariosPage = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const printRef = useRef<HTMLDivElement>(null);
   const [tabValue, setTabValue] = useState(0);
   const [openAssignDialog, setOpenAssignDialog] = useState(false);
@@ -200,80 +204,134 @@ const HorariosPage = () => {
     }
   };
 
-  // Función para exportar a PDF
+  // Función para exportar a PDF optimizada para móvil
   const handleExportPDF = async () => {
     if (!printRef.current) return;
 
     setIsExporting(true);
     try {
-      const width = printRef.current.scrollWidth;
-      const height = printRef.current.scrollHeight;
+      // Crear un elemento temporal para el PDF con estilos optimizados
+      const printElement = printRef.current.cloneNode(true) as HTMLElement;
+      
+      // Aplicar estilos específicos para PDF
+      printElement.style.width = '1200px';
+      printElement.style.transform = 'scale(1)';
+      printElement.style.transformOrigin = 'top left';
+      
+      // Crear un contenedor temporal
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.top = '-9999px';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.width = '1200px';
+      tempContainer.style.backgroundColor = '#ffffff';
+      tempContainer.appendChild(printElement);
+      document.body.appendChild(tempContainer);
 
-      const canvas = await html2canvas(printRef.current, {
+      // Esperar un momento para que se rendericen los estilos
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const canvas = await html2canvas(printElement, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        width: width,
-        height: height,
+        width: 1200,
+        height: printElement.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
       });
+
+      // Limpiar el elemento temporal
+      document.body.removeChild(tempContainer);
 
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('landscape', 'mm', [width * 0.264683, height * 0.264583]);
+      
+      // Configurar PDF en orientación landscape
+      const pdf = new jsPDF('landscape', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      // Calcular dimensiones manteniendo proporción
+      const imgWidth = pdfWidth - 20; // Margen de 10mm a cada lado
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      // Añadir logo
-      const logo = new Image();
-      logo.src = `${window.location.origin}/icons.png`;
-      await new Promise((resolve) => {
-        logo.onload = resolve;
-      });
-
-      pdf.addImage(logo, 'PNG', 10, 10, 30, 15);
+      // Añadir logo si existe
+      try {
+        const logo = new Image();
+        logo.crossOrigin = 'anonymous';
+        logo.src = `${window.location.origin}/icons.png`;
+        await new Promise((resolve, reject) => {
+          logo.onload = resolve;
+          logo.onerror = reject;
+        });
+        pdf.addImage(logo, 'PNG', 10, 10, 30, 15);
+      } catch (error) {
+        console.warn('No se pudo cargar el logo:', error);
+      }
 
       // Agregar título
       pdf.setFontSize(20);
-      pdf.text('Sistema de Gestión de Horarios UBV', pdf.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+      pdf.text('Sistema de Gestión de Horarios UBV', pdfWidth / 2, 20, { align: 'center' });
 
       if (trayectos[tabValue]) {
         pdf.setFontSize(16);
-        pdf.text(`Horario - ${trayectos[tabValue].nombre}`, pdf.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
+        pdf.text(`Horario - ${trayectos[tabValue].nombre}`, pdfWidth / 2, 30, { align: 'center' });
       }
 
-      // Añadir la imagen al PDF
-      pdf.addImage(imgData, 'PNG', 10, 40, pdf.internal.pageSize.getWidth() - 20, pdf.internal.pageSize.getHeight() - 50);
+      // Verificar si necesita múltiples páginas
+      if (imgHeight > pdfHeight - 50) {
+        // Dividir en múltiples páginas si es necesario
+        let yPosition = 40;
+        const pageHeight = pdfHeight - 60;
+        let remainingHeight = imgHeight;
+        let sourceY = 0;
 
-      // Agregar fecha de generación
+        while (remainingHeight > 0) {
+          const currentPageHeight = Math.min(pageHeight, remainingHeight);
+          const currentSourceHeight = (currentPageHeight * canvas.height) / imgHeight;
+
+          // Crear canvas para esta página
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = currentSourceHeight;
+          const pageCtx = pageCanvas.getContext('2d');
+          
+          if (pageCtx) {
+            pageCtx.drawImage(canvas, 0, sourceY, canvas.width, currentSourceHeight, 0, 0, canvas.width, currentSourceHeight);
+            const pageImgData = pageCanvas.toDataURL('image/png');
+            pdf.addImage(pageImgData, 'PNG', 10, yPosition, imgWidth, currentPageHeight);
+          }
+
+          remainingHeight -= currentPageHeight;
+          sourceY += currentSourceHeight;
+
+          if (remainingHeight > 0) {
+            pdf.addPage();
+            yPosition = 10;
+          }
+        }
+      } else {
+        // Añadir la imagen completa
+        pdf.addImage(imgData, 'PNG', 10, 40, imgWidth, imgHeight);
+      }
+
+      // Agregar fecha de generación en la última página
       pdf.setFontSize(10);
-      pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')}`, pdf.internal.pageSize.getWidth() / 2, pdf.internal.pageSize.getHeight() - 10, { align: 'center' });
+      pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')}`, pdfWidth / 2, pdfHeight - 10, { align: 'center' });
 
-      // Guardar el PDF en sessionStorage
-      const pdfBlob = pdf.output('blob');
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      const pdfName = `horario - ${trayectos[tabValue]?.nombre || 'general'}`;
-      sessionStorage.setItem(pdfName, pdfUrl);
-
-      // Abrir una nueva pestaña para mostrar el PDF
-      const viewWindow = window.open('', '_blank');
-      if (!viewWindow) {
-        console.error('Failed to open view window');
-        return;
+      // Guardar el PDF
+      const pdfName = `horario-${trayectos[tabValue]?.nombre || 'general'}.pdf`;
+      
+      if (isMobile) {
+        // En móvil, abrir en nueva pestaña
+        const pdfBlob = pdf.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, '_blank');
+      } else {
+        // En desktop, descargar directamente
+        pdf.save(pdfName);
       }
-
-      // Escribir el contenido en la nueva ventana
-      viewWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>${pdfName}</title>
-          </head>
-          <body style="margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh;">
-            <embed width="100%" height="100%" src="${pdfUrl}" type="application/pdf" />
-          </body>
-        </html>
-      `);
-
-      viewWindow.document.close();
-      viewWindow.focus();
 
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -295,16 +353,28 @@ const HorariosPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '50vh' 
+      }}>
         <CircularProgress size={60} />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ width: '100%', overflow: 'hidden' }}>
+    <Box sx={{ 
+      width: '100%', 
+      overflow: 'hidden',
+      px: { xs: 0, sm: 1 }
+    }}>
       {/* Header */}
-      <Box sx={{ width: '97%', marginLeft: 2 }}>
+      <Box sx={{ 
+        width: '100%', 
+        mb: { xs: 1, sm: 2 }
+      }}>
         <HorarioHeader
           trayectos={trayectos}
           horarios={horarios}
@@ -316,7 +386,10 @@ const HorariosPage = () => {
       </Box>
 
       {/* Pestañas de trayectos */}
-      <Box sx={{ width: '97%', marginLeft: 2 }}>
+      <Box sx={{ 
+        width: '100%', 
+        mb: { xs: 1, sm: 2 }
+      }}>
         <HorarioTabs
           trayectos={trayectos}
           tabValue={tabValue}
@@ -368,7 +441,12 @@ const HorariosPage = () => {
       />
 
       {/* Notificaciones */}
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: isMobile ? 'center' : 'left' }}
+      >
         <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>

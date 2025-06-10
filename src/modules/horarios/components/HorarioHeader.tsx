@@ -9,12 +9,12 @@ import {
   Stack, 
   Chip, 
   CircularProgress,
-  useTheme 
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   Calendar as CalendarIcon,
   Download as DownloadIcon,
-  Printer as PrinterIcon,
   BookOpen as BookOpenIcon,
   Users as UsersIcon,
   Home as HomeIcon,
@@ -37,13 +37,15 @@ const HorarioHeader = ({
   onExportPDF,
 }: HorarioHeaderProps) => {
   const theme = useTheme();
-
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+  
   return (
     <Paper 
       elevation={3} 
       sx={{ 
-        p: 3, 
-        mb: 3, 
+        p: { xs: 2, sm: 3 }, 
+        mb: { xs: 2, sm: 3 }, 
         borderRadius: 3,
         background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
         color: 'white',
@@ -54,87 +56,122 @@ const HorarioHeader = ({
           position: 'absolute',
           top: 0,
           right: 0,
-          height: '200px',
+          width: { xs: '100px', sm: '200px' },
+          height: { xs: '100px', sm: '200px' },
           background: 'rgba(255,255,255,0.1)',
           borderRadius: '50%',
           transform: 'translate(50%, -50%)',
         }
       }}
     >
-      <Grid container spacing={3} alignItems="center">
+      <Grid container spacing={{ xs: 2, sm: 3 }} alignItems="center">
         <Grid item xs={12} md={8}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1, sm: 2 } }}>
             <Avatar 
               sx={{ 
                 bgcolor: 'rgba(255,255,255,0.2)', 
-                mr: 2, 
-                width: 56, 
-                height: 56,
+                mr: { xs: 1, sm: 2 }, 
+                width: { xs: 40, sm: 56 },
+                height: { xs: 40, sm: 56 },
                 backdropFilter: 'blur(10px)',
               }}
             >
-              <CalendarIcon size={28} />
+              <CalendarIcon size={isMobile ? 20 : 28} />
             </Avatar>
             <Box>
-              <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 0.5 }}>
-                Gestión de Horarios
+              <Typography 
+                variant={isMobile ? "h5" : "h4"} 
+                component="h1" 
+                sx={{ 
+                  fontWeight: 700, 
+                  mb: 0.5,
+                  fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
+                }}
+              >
+                {isSmall ? 'Horarios' : 'Gestión de Horarios'}
               </Typography>
-              <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  opacity: 0.9,
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  display: { xs: 'none', sm: 'block' }
+                }}
+              >
                 Sistema integral de programación académica
               </Typography>
             </Box>
           </Box>
           
-          <Stack direction="row" spacing={2} sx={{ mt: 2 }} flexWrap="wrap">
+          <Stack 
+            direction="row" 
+            spacing={{ xs: 1, sm: 2 }} 
+            sx={{ mt: { xs: 1, sm: 2 } }} 
+            flexWrap="wrap"
+            useFlexGap
+          >
             <Chip 
-              icon={<BookOpenIcon size={16} />}
-              label={`${trayectos.length} Trayectos`}
+              icon={<BookOpenIcon size={14} />}
+              label={`${trayectos.length} Trayecto${trayectos.length !== 1 ? 's' : ''}`}
+              size={isMobile ? "small" : "medium"}
               sx={{ 
                 bgcolor: 'rgba(255,255,255,0.2)', 
                 color: 'white',
                 backdropFilter: 'blur(10px)',
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }
               }}
             />
             <Chip 
-              icon={<UsersIcon size={16} />}
-              label={`${profesores.length} Profesores`}
+              icon={<UsersIcon size={14} />}
+              label={`${profesores.length} Prof${isMobile ? '.' : 'esores'}`}
+              size={isMobile ? "small" : "medium"}
               sx={{ 
                 bgcolor: 'rgba(255,255,255,0.2)', 
                 color: 'white',
                 backdropFilter: 'blur(10px)',
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }
               }}
             />
             <Chip 
-              icon={<HomeIcon size={16} />}
-              label={`${aulas.length} Aulas`}
+              icon={<HomeIcon size={14} />}
+              label={`${aulas.length} Aula${aulas.length !== 1 ? 's' : ''}`}
+              size={isMobile ? "small" : "medium"}
               sx={{ 
                 bgcolor: 'rgba(255,255,255,0.2)', 
                 color: 'white',
                 backdropFilter: 'blur(10px)',
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }
               }}
             />
           </Stack>
         </Grid>
         
         <Grid item xs={12} md={4}>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, flexWrap: 'wrap' }}>
-            
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: { xs: 'center', md: 'flex-end' }, 
+            gap: { xs: 1, sm: 2 }, 
+            flexWrap: 'wrap' 
+          }}>
             <Tooltip title="Descargar PDF">
               <Button
                 variant="contained"
                 onClick={onExportPDF}
                 disabled={isExporting}
-                startIcon={isExporting ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon size={20} />}
+                size={isMobile ? "small" : "medium"}
+                startIcon={isExporting ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon size={16} />}
                 sx={{
                   bgcolor: 'rgba(255,255,255,0.2)',
                   backdropFilter: 'blur(10px)',
                   border: '1px solid rgba(255,255,255,0.3)',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 2, sm: 3 },
                   '&:hover': {
                     bgcolor: 'rgba(255,255,255,0.3)',
                   },
                 }}
               >
-                {isExporting ? 'Generando...' : 'Descargar PDF'}
+                {isExporting ? 'Generando...' : (isMobile ? 'PDF' : 'Descargar PDF')}
               </Button>
             </Tooltip>
           </Box>

@@ -1,4 +1,4 @@
-import { Card, CardContent, Box, Typography, Avatar, useTheme } from '@mui/material';
+import { Card, CardContent, Box, Typography, Avatar, useTheme, useMediaQuery } from '@mui/material';
 
 interface StatCardProps {
   title: string;
@@ -9,6 +9,7 @@ interface StatCardProps {
 
 const StatCard = ({ title, value, icon, color }: StatCardProps) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   return (
     <Card sx={{ 
@@ -19,28 +20,52 @@ const StatCard = ({ title, value, icon, color }: StatCardProps) => {
       borderRadius: 3,
       transition: 'transform 0.3s, box-shadow 0.3s',
       '&:hover': {
-        transform: 'translateY(-5px)',
+        transform: isMobile ? 'none' : 'translateY(-5px)',
         boxShadow: 6,
       }
     }}>
-      <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 3 }}>
+      <CardContent sx={{ 
+        flexGrow: 1, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        padding: { xs: 2, sm: 3 },
+        textAlign: 'center'
+      }}>
         <Box
           sx={{
             backgroundColor: `${color}.light`,
             borderRadius: '50%',
-            padding: 2,
+            padding: { xs: 1.5, sm: 2 },
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            marginBottom: 2,
+            marginBottom: { xs: 1.5, sm: 2 },
+            width: { xs: 48, sm: 56 },
+            height: { xs: 48, sm: 56 },
           }}
         >
           {icon}
         </Box>
-        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
+        <Typography 
+          variant={isMobile ? "h4" : "h3"} 
+          component="div" 
+          sx={{ 
+            fontWeight: 'bold',
+            fontSize: { xs: '2rem', sm: '2.5rem' },
+            mb: 1
+          }}
+        >
           {value}
         </Typography>
-        <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
+        <Typography 
+          color="text.secondary" 
+          sx={{ 
+            textAlign: 'center',
+            fontSize: { xs: '0.875rem', sm: '1rem' },
+            lineHeight: 1.2
+          }}
+        >
           {title}
         </Typography>
       </CardContent>

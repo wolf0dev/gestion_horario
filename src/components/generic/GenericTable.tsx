@@ -16,6 +16,8 @@ import {
   Tooltip,
   TextField,
   InputAdornment,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -57,6 +59,10 @@ export default function GenericTable({
   searchable = true,
   searchKeys = [],
 }: GenericTableProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+  
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [orderBy, setOrderBy] = useState<string>('');
@@ -122,20 +128,44 @@ export default function GenericTable({
   const paginatedData = filteredData().slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
-    <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 2, boxShadow: 3 }}>
+    <Paper sx={{ 
+      width: '100%', 
+      overflow: 'hidden', 
+      borderRadius: 2, 
+      boxShadow: 3,
+      mx: { xs: 0, sm: 'auto' }
+    }}>
       <Toolbar
         sx={{
           pl: { sm: 2 },
           pr: { xs: 1, sm: 1 },
           display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
           justifyContent: 'space-between',
+          gap: { xs: 2, sm: 0 },
+          py: { xs: 2, sm: 1 }
         }}
       >
-        <Typography sx={{ flex: '1 1 100%' }} variant="h6" id="tableTitle" component="div">
+        <Typography 
+          sx={{ 
+            flex: { xs: 'none', sm: '1 1 100%' },
+            textAlign: { xs: 'center', sm: 'left' }
+          }} 
+          variant={isMobile ? "h6" : "h6"} 
+          id="tableTitle" 
+          component="div"
+        >
           {title}
         </Typography>
 
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1, sm: 2 },
+          width: { xs: '100%', sm: 'auto' }
+        }}>
           {searchable && (
             <TextField
               variant="outlined"
@@ -143,7 +173,10 @@ export default function GenericTable({
               size="small"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ mr: 2, width: '200px' }}
+              sx={{ 
+                width: { xs: '100%', sm: '200px' },
+                order: { xs: 2, sm: 1 }
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -156,7 +189,11 @@ export default function GenericTable({
           
           {onAdd && (
             <Tooltip title="Agregar nuevo">
-              <IconButton onClick={onAdd} color="primary">
+              <IconButton 
+                onClick={onAdd} 
+                color="primary"
+                sx={{ order: { xs: 1, sm: 2 } }}
+              >
                 <PlusIcon size={24} />
               </IconButton>
             </Tooltip>
@@ -164,7 +201,10 @@ export default function GenericTable({
         </Box>
       </Toolbar>
       
-      <TableContainer sx={{ maxHeight: 440 }}>
+      <TableContainer sx={{ 
+        maxHeight: { xs: 400, sm: 440 },
+        overflowX: 'auto'
+      }}>
         <Table stickyHeader aria-label={`tabla de ${title}`}>
           <TableHead>
             <TableRow>
@@ -172,7 +212,11 @@ export default function GenericTable({
                 <TableCell
                   key={column.id}
                   align={column.align}
-                  style={{ minWidth: column.minWidth, fontWeight: 'bold' }}
+                  style={{ 
+                    minWidth: isMobile ? Math.min(column.minWidth || 100, 120) : column.minWidth,
+                    fontWeight: 'bold',
+                    fontSize: isMobile ? '0.875rem' : '1rem'
+                  }}
                 >
                   {column.sortable ? (
                     <TableSortLabel
@@ -188,7 +232,14 @@ export default function GenericTable({
                 </TableCell>
               ))}
               {(onView || onEdit || onDelete) && (
-                <TableCell align="center" style={{ minWidth: 150 }}>
+                <TableCell 
+                  align="center" 
+                  style={{ 
+                    minWidth: isMobile ? 100 : 150,
+                    fontWeight: 'bold',
+                    fontSize: isMobile ? '0.875rem' : '1rem'
+                  }}
+                >
                   Acciones
                 </TableCell>
               )}
@@ -198,52 +249,64 @@ export default function GenericTable({
             {paginatedData.length > 0 ? (
               paginatedData.map((row, index) => {
                 return (
-                  <TableRow hover role="checkbox\" tabIndex={-1} key={index}>
+                  <TableRow hover role="checkbox" tabIndex={-1} key={index}>
                     {columns.map((column) => {
                       const value = row[column.id];
                       return (
-                        <TableCell key={column.id} align={column.align}>
+                        <TableCell 
+                          key={column.id} 
+                          align={column.align}
+                          sx={{
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                            py: { xs: 1, sm: 2 }
+                          }}
+                        >
                           {column.format ? column.format(value) : value}
                         </TableCell>
                       );
                     })}
                     {(onView || onEdit || onDelete) && (
                       <TableCell align="center">
-                        {onView && (
-                          <Tooltip title="Ver detalles">
-                            <IconButton
-                              size="small"
-                              onClick={() => onView(row)}
-                              color="info"
-                            >
-                              <EyeIcon size={18} />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        {onEdit && (
-                          <Tooltip title="Editar">
-                            <IconButton
-                              size="small"
-                              onClick={() => onEdit(row)}
-                              color="primary"
-                              sx={{ ml: 1 }}
-                            >
-                              <EditIcon size={18} />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        {onDelete && (
-                          <Tooltip title="Eliminar">
-                            <IconButton
-                              size="small"
-                              onClick={() => onDelete(row)}
-                              color="error"
-                              sx={{ ml: 1 }}
-                            >
-                              <TrashIcon size={18} />
-                            </IconButton>
-                          </Tooltip>
-                        )}
+                        <Box sx={{ 
+                          display: 'flex', 
+                          justifyContent: 'center', 
+                          gap: { xs: 0.5, sm: 1 },
+                          flexWrap: isMobile ? 'wrap' : 'nowrap'
+                        }}>
+                          {onView && (
+                            <Tooltip title="Ver detalles">
+                              <IconButton
+                                size={isMobile ? "small" : "medium"}
+                                onClick={() => onView(row)}
+                                color="info"
+                              >
+                                <EyeIcon size={isMobile ? 16 : 18} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {onEdit && (
+                            <Tooltip title="Editar">
+                              <IconButton
+                                size={isMobile ? "small" : "medium"}
+                                onClick={() => onEdit(row)}
+                                color="primary"
+                              >
+                                <EditIcon size={isMobile ? 16 : 18} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {onDelete && (
+                            <Tooltip title="Eliminar">
+                              <IconButton
+                                size={isMobile ? "small" : "medium"}
+                                onClick={() => onDelete(row)}
+                                color="error"
+                              >
+                                <TrashIcon size={isMobile ? 16 : 18} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Box>
                       </TableCell>
                     )}
                   </TableRow>
@@ -275,6 +338,16 @@ export default function GenericTable({
         onRowsPerPageChange={handleChangeRowsPerPage}
         labelRowsPerPage="Filas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+        sx={{
+          '& .MuiTablePagination-toolbar': {
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 1, sm: 0 }
+          },
+          '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+            fontSize: { xs: '0.75rem', sm: '0.875rem' }
+          }
+        }}
       />
     </Paper>
   );
