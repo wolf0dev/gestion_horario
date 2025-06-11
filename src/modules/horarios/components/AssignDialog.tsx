@@ -56,6 +56,7 @@ const AssignDialog = ({
     bloque_id: selectedCell?.bloque || '',
     aula_id: '',
     profesor_id: '',
+    color: '#1976d2',
     activo: true,
   };
 
@@ -92,6 +93,15 @@ const AssignDialog = ({
         label: `${profesor.nombre} ${profesor.apellido} - ${profesor.especialidad}`,
         value: profesor.profesor_id
       })),
+      xs: 12,
+      sm: 6,
+    },
+    {
+      name: 'color',
+      label: 'Color',
+      type: 'text',
+      required: true,
+      placeholder: '#1976d2',
       xs: 12,
       sm: 6,
     },

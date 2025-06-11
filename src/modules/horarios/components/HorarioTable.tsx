@@ -27,6 +27,12 @@ interface Horario {
   aula_nombre: string;
   dia_nombre: string;
   bloque_nombre: string;
+  trayecto_uc_id: number;
+  dia_id: number;
+  bloque_id: number;
+  aula_id: number;
+  profesor_id: number;
+  color?: string;
   activo: boolean;
 }
 
@@ -60,19 +66,19 @@ const HorarioTable = ({
   useEffect(() => {
   }, [horarios, trayectos, diasSemana, bloquesHorarios]);
 
-  const colors = [
-    theme.palette.primary.light,
-    theme.palette.secondary.light,
-    theme.palette.info.light,
-    theme.palette.warning.light,
-    theme.palette.success.light,
-    theme.palette.error.light,
-    '#FFB74D',
-    '#81C784',
-    '#64B5F6',
-    '#F06292',
-    '#A1887F',
-    '#90A4AE',
+  const defaultColors = [
+    '#1976d2',
+    '#f50057',
+    '#ff9800',
+    '#4caf50',
+    '#9c27b0',
+    '#00bcd4',
+    '#ff5722',
+    '#795548',
+    '#607d8b',
+    '#e91e63',
+    '#3f51b5',
+    '#009688',
   ];
 
   const getHorarioForCell = (diaNombre: string, bloqueNombre: string): Horario | null => {
@@ -91,9 +97,15 @@ const HorarioTable = ({
     return horario || null;
   };
 
-  const getColorForUC = (ucNombre: string): string => {
-    const index = ucNombre.charCodeAt(0) % colors.length;
-    return colors[index];
+  const getColorForHorario = (horario: Horario): string => {
+    // Si el horario tiene un color asignado, usarlo
+    if (horario.color) {
+      return horario.color;
+    }
+    
+    // Si no, usar un color por defecto basado en el nombre de la UC
+    const index = horario.uc_nombre.charCodeAt(0) % defaultColors.length;
+    return defaultColors[index];
   };
 
   // Configuración responsiva para el tamaño de las celdas
@@ -227,6 +239,8 @@ const HorarioTable = ({
                   </TableCell>
                   {diasSemana.map((dia) => {
                     const horario = getHorarioForCell(dia.nombre_dia, bloque.nombre_bloque);
+                    const backgroundColor = horario ? getColorForHorario(horario) : 'transparent';
+                    
                     return (
                       <TableCell
                         key={`${dia.dia_id}-${bloque.bloque_id}`}
@@ -234,14 +248,14 @@ const HorarioTable = ({
                         onClick={!isForPrint ? () => onCellClick(dia.dia_id, bloque.bloque_id) : undefined}
                         sx={{
                           cursor: !isForPrint ? 'pointer' : 'default',
-                          backgroundColor: horario ? getColorForUC(horario.uc_nombre) : 'transparent',
+                          backgroundColor: backgroundColor,
                           p: { xs: 0.5, sm: 1 },
                           width: cellWidth,
                           minWidth: cellWidth,
                           height: cellHeight,
                           '&:hover': !isForPrint ? {
                             backgroundColor: horario
-                              ? `${getColorForUC(horario.uc_nombre)}CC`
+                              ? `${backgroundColor}CC`
                               : theme.palette.action.hover,
                             transform: isMobile ? 'none' : 'scale(1.02)',
                           } : {},

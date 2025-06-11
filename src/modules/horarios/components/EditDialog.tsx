@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -26,6 +26,7 @@ interface Horario {
   bloque_id: number;
   aula_id: number;
   profesor_id: number;
+  color?: string;
   activo: boolean;
 }
 
@@ -50,6 +51,14 @@ const EditDialog = ({
 }: EditDialogProps) => {
   const theme = useTheme();
 
+  // Filtrar UCs por el trayecto del horario actual
+  const filteredTrayectosUC = currentHorario 
+    ? trayectosUC.filter(tuc => tuc.trayecto_nombre === currentHorario.trayecto_nombre)
+    : trayectosUC;
+
+  useEffect(() => {
+  }, [currentHorario, trayectosUC, filteredTrayectosUC]);
+
   // Verificar si currentHorario es null o undefined
   const initialValues = currentHorario ? {
     horario_id: currentHorario.horario_id,
@@ -58,6 +67,7 @@ const EditDialog = ({
     bloque_id: currentHorario.bloque_id?.toString() || '',
     aula_id: currentHorario.aula_id?.toString() || '',
     profesor_id: currentHorario.profesor_id?.toString() || '',
+    color: currentHorario.color || '#1976d2',
     activo: currentHorario.activo !== undefined ? currentHorario.activo : true,
   } : {
     horario_id: '',
@@ -66,6 +76,7 @@ const EditDialog = ({
     bloque_id: '',
     aula_id: '',
     profesor_id: '',
+    color: '#1976d2',
     activo: true,
   };
 
@@ -75,7 +86,7 @@ const EditDialog = ({
       label: 'Unidad Curricular',
       type: 'select',
       required: true,
-      options: trayectosUC.map(tuc => ({
+      options: filteredTrayectosUC.map(tuc => ({
         label: `${tuc.uc_codigo || ''} - ${tuc.uc_nombre || ''}`,
         value: tuc.trayecto_uc_id?.toString() || ''
       })),
@@ -102,6 +113,15 @@ const EditDialog = ({
         label: `${profesor.nombre || ''} ${profesor.apellido || ''} - ${profesor.especialidad || ''}`,
         value: profesor.profesor_id?.toString() || ''
       })),
+      xs: 12,
+      sm: 6,
+    },
+    {
+      name: 'color',
+      label: 'Color',
+      type: 'text',
+      required: true,
+      placeholder: '#1976d2',
       xs: 12,
       sm: 6,
     },
@@ -175,6 +195,27 @@ const EditDialog = ({
                 <Typography variant="body1" fontWeight="bold">
                   {currentHorario.dia_nombre || 'No especificado'} - {currentHorario.bloque_nombre || 'No especificado'}
                 </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="textSecondary">Color actual:</Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1 
+                }}>
+                  <Box 
+                    sx={{ 
+                      width: 20, 
+                      height: 20, 
+                      backgroundColor: currentHorario.color || '#1976d2',
+                      borderRadius: 1,
+                      border: '1px solid #ccc'
+                    }} 
+                  />
+                  <Typography variant="body1" fontWeight="bold">
+                    {currentHorario.color || '#1976d2'}
+                  </Typography>
+                </Box>
               </Grid>
             </Grid>
           </Paper>
