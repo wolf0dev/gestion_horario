@@ -86,7 +86,7 @@ const Dashboard = () => {
             variant={isMobile ? "h4" : "h2"} 
             component="h2"
             sx={{
-              fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
+              fontSize: { xs: '1rem', sm: '2rem', md: '2,5rem' },
               textAlign: { xs: 'center', sm: 'left' }
             }}
           >
