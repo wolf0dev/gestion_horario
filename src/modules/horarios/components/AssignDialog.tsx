@@ -8,9 +8,15 @@ import {
   Typography,
   Grid,
   Paper,
-  useTheme
+  useTheme,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
 } from '@mui/material';
 import { X as CloseIcon, Plus as PlusIcon } from 'lucide-react';
+import { Field } from 'formik';
 import GenericForm, { FormField } from '../../../components/generic/GenericForm';
 
 interface AssignDialogProps {
@@ -26,6 +32,86 @@ interface AssignDialogProps {
   tabValue: number;
   onSubmit: (values: any) => void;
 }
+
+// Paleta de colores predefinidos con buen contraste
+const colorPalette = [
+  { name: 'Azul Principal', value: '#1976d2' },
+  { name: 'Rosa', value: '#f50057' },
+  { name: 'Naranja', value: '#ff9800' },
+  { name: 'Verde', value: '#4caf50' },
+  { name: 'Púrpura', value: '#9c27b0' },
+  { name: 'Cian', value: '#00bcd4' },
+  { name: 'Rojo', value: '#f44336' },
+  { name: 'Índigo', value: '#3f51b5' },
+  { name: 'Teal', value: '#009688' },
+  { name: 'Ámbar', value: '#ffc107' },
+  { name: 'Marrón', value: '#795548' },
+  { name: 'Gris Azul', value: '#607d8b' },
+  { name: 'Lima', value: '#8bc34a' },
+  { name: 'Rosa Profundo', value: '#e91e63' },
+  { name: 'Azul Profundo', value: '#2196f3' },
+  { name: 'Verde Claro', value: '#cddc39' },
+];
+
+// Componente personalizado para el selector de colores
+const ColorPicker = ({ name, value, onChange, error, helperText }: any) => {
+  return (
+    <FormControl fullWidth margin="normal" error={error}>
+      <InputLabel id={`${name}-label`}>Color</InputLabel>
+      <Select
+        labelId={`${name}-label`}
+        value={value}
+        onChange={onChange}
+        label="Color"
+        name={name}
+        renderValue={(selected) => (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box
+              sx={{
+                width: 20,
+                height: 20,
+                backgroundColor: selected,
+                borderRadius: '50%',
+                border: '2px solid #fff',
+                boxShadow: '0 0 0 1px rgba(0,0,0,0.1)',
+              }}
+            />
+            <Typography variant="body2">
+              {colorPalette.find(c => c.value === selected)?.name || 'Color personalizado'}
+            </Typography>
+          </Box>
+        )}
+      >
+        {colorPalette.map((color) => (
+          <MenuItem key={color.value} value={color.value}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+              <Box
+                sx={{
+                  width: 24,
+                  height: 24,
+                  backgroundColor: color.value,
+                  borderRadius: '50%',
+                  border: '2px solid #fff',
+                  boxShadow: '0 0 0 1px rgba(0,0,0,0.1)',
+                  flexShrink: 0,
+                }}
+              />
+              <Box>
+                <Typography variant="body2" fontWeight="medium">
+                  {color.name}
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  {color.value}
+                </Typography>
+              </Box>
+            </Box>
+          </MenuItem>
+        ))}
+      </Select>
+      {helperText && <FormHelperText>{helperText}</FormHelperText>}
+    </FormControl>
+  );
+};
 
 const AssignDialog = ({
   open,
@@ -93,15 +179,6 @@ const AssignDialog = ({
         label: `${profesor.nombre} ${profesor.apellido} - ${profesor.especialidad}`,
         value: profesor.profesor_id
       })),
-      xs: 12,
-      sm: 6,
-    },
-    {
-      name: 'color',
-      label: 'Color',
-      type: 'text',
-      required: true,
-      placeholder: '#1976d2',
       xs: 12,
       sm: 6,
     },
@@ -191,6 +268,21 @@ const AssignDialog = ({
             onSubmit={handleSubmit}
             onCancel={onClose}
             submitButtonText="Asignar Clase"
+            customFields={{
+              color: (field: any, formikProps: any) => (
+                <Field name="color">
+                  {({ field: formikField, meta }: any) => (
+                    <ColorPicker
+                      name="color"
+                      value={formikField.value}
+                      onChange={formikField.onChange}
+                      error={meta.touched && meta.error ? true : false}
+                      helperText={meta.touched && meta.error ? meta.error : ''}
+                    />
+                  )}
+                </Field>
+              )
+            }}
           />
         )}
       </DialogContent>

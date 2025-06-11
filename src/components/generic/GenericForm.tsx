@@ -54,6 +54,7 @@ interface GenericFormProps {
   submitButtonText?: string;
   isLoading?: boolean;
   validationSchema?: any;
+  customFields?: Record<string, (field: FormField, formikProps: any) => React.ReactNode>;
 }
 
 const GenericForm = ({
@@ -65,6 +66,7 @@ const GenericForm = ({
   submitButtonText = 'Guardar',
   isLoading = false,
   validationSchema: customValidationSchema,
+  customFields = {},
 }: GenericFormProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -126,7 +128,12 @@ const GenericForm = ({
   }, [fields, customValidationSchema]);
 
   // Renderizar campo según su tipo
-  const renderField = (field: FormField) => {
+  const renderField = (field: FormField, formikProps: any) => {
+    // Si hay un campo personalizado definido, usarlo
+    if (customFields[field.name]) {
+      return customFields[field.name](field, formikProps);
+    }
+
     const fieldProps = {
       name: field.name,
       fullWidth: field.fullWidth !== false,
@@ -243,76 +250,87 @@ const GenericForm = ({
           onSubmit={onSubmit}
           enableReinitialize
         >
-          {({ errors, touched, isSubmitting }) => (
-            <Form>
-              <Grid container spacing={{ xs: 1, sm: 2 }}>
-                {fields.map((field) => (
-                  <Grid
-                    item
-                    xs={field.xs || 12}
-                    sm={field.sm || (isMobile ? 12 : 6)}
-                    md={field.md || 4}
-                    lg={field.lg || 4}
-                    xl={field.xl || 3}
-                    key={field.name}
-                  >
-                    {renderField(field)}
-                    <ErrorMessage
-                      name={field.name}
-                      component={Typography}
-                      sx={{ 
-                        color: 'error.main', 
-                        fontSize: { xs: '0.7rem', sm: '0.75rem' }, 
-                        mt: 0.5, 
-                        ml: 1 
-                      }}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
+          {(formikProps) => {
+            const { errors, touched, isSubmitting } = formikProps;
+            
+            return (
+              <Form>
+                <Grid container spacing={{ xs: 1, sm: 2 }}>
+                  {fields.map((field) => (
+                    <Grid
+                      item
+                      xs={field.xs || 12}
+                      sm={field.sm || (isMobile ? 12 : 6)}
+                      md={field.md || 4}
+                      lg={field.lg || 4}
+                      xl={field.xl || 3}
+                      key={field.name}
+                    >
+                      {renderField(field, formikProps)}
+                      <ErrorMessage
+                        name={field.name}
+                        component={Typography}
+                        sx={{ 
+                          color: 'error.main', 
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' }, 
+                          mt: 0.5, 
+                          ml: 1 
+                        }}
+                      />
+                    </Grid>
+                  ))}
+                  
+                  {/* Renderizar campos personalizados que no están en fields */}
+                  {Object.keys(customFields).filter(key => !fields.find(f => f.name === key)).map((key) => (
+                    <Grid item xs={12} key={key}>
+                      {customFields[key]({} as FormField, formikProps)}
+                    </Grid>
+                  ))}
+                </Grid>
 
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={2}
-                justifyContent="flex-end"
-                sx={{ 
-                  mt: { xs: 3, sm: 4 },
-                  gap: { xs: 1, sm: 2 }
-                }}
-              >
-                {onCancel && (
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={2}
+                  justifyContent="flex-end"
+                  sx={{ 
+                    mt: { xs: 3, sm: 4 },
+                    gap: { xs: 1, sm: 2 }
+                  }}
+                >
+                  {onCancel && (
+                    <Button
+                      variant="outlined"
+                      onClick={onCancel}
+                      startIcon={<CloseIcon size={18} />}
+                      disabled={isSubmitting || isLoading}
+                      size={isMobile ? 'small' : 'medium'}
+                      fullWidth={isMobile}
+                    >
+                      Cancelar
+                    </Button>
+                  )}
+                  
                   <Button
-                    variant="outlined"
-                    onClick={onCancel}
-                    startIcon={<CloseIcon size={18} />}
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    startIcon={
+                      isSubmitting || isLoading ? (
+                        <CircularProgress size={16} color="inherit" />
+                      ) : (
+                        <SaveIcon size={18} />
+                      )
+                    }
                     disabled={isSubmitting || isLoading}
                     size={isMobile ? 'small' : 'medium'}
                     fullWidth={isMobile}
                   >
-                    Cancelar
+                    {submitButtonText}
                   </Button>
-                )}
-                
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  startIcon={
-                    isSubmitting || isLoading ? (
-                      <CircularProgress size={16} color="inherit" />
-                    ) : (
-                      <SaveIcon size={18} />
-                    )
-                  }
-                  disabled={isSubmitting || isLoading}
-                  size={isMobile ? 'small' : 'medium'}
-                  fullWidth={isMobile}
-                >
-                  {submitButtonText}
-                </Button>
-              </Stack>
-            </Form>
-          )}
+                </Stack>
+              </Form>
+            );
+          }}
         </Formik>
       ) : (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
