@@ -35,6 +35,7 @@ interface Horario {
   bloque_id: number;
   aula_id: number;
   profesor_id: number;
+  color?: string;
   activo: boolean;
 }
 
@@ -44,6 +45,7 @@ interface HorarioForm {
   bloque_id: number;
   aula_id: number;
   profesor_id: number;
+  color?: string;
   activo: boolean;
 }
 
@@ -166,7 +168,7 @@ const HorariosPage = () => {
   };
 
   // Actualizar horario
-  const handleUpdateHorario = async (values: HorarioForm) => {
+  const handleUpdateHorario = async (values: any) => {
     try {
       if (!currentHorario) return;
 
@@ -204,7 +206,7 @@ const HorariosPage = () => {
     }
   };
 
-  // Función para exportar a PDF optimizada para móvil
+  // Función para exportar a PDF y almacenar en localStorage
   const handleExportPDF = async () => {
     if (!printRef.current) return;
 
@@ -320,18 +322,49 @@ const HorariosPage = () => {
       pdf.setFontSize(10);
       pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')}`, pdfWidth / 2, pdfHeight - 10, { align: 'center' });
 
-      // Guardar el PDF
-      const pdfName = `horario-${trayectos[tabValue]?.nombre || 'general'}.pdf`;
+      // Generar el PDF como blob
+      const pdfBlob = pdf.output('blob');
       
-      if (isMobile) {
-        // En móvil, abrir en nueva pestaña
-        const pdfBlob = pdf.output('blob');
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        window.open(pdfUrl, '_blank');
-      } else {
-        // En desktop, descargar directamente
-        pdf.save(pdfName);
-      }
+      // Crear nombre del archivo
+      const trayectoNombre = trayectos[tabValue]?.nombre || 'general';
+      const pdfName = `horario_${trayectoNombre.replace(/\s+/g, '_').toLowerCase()}`;
+      
+      // Convertir blob a base64 para almacenar en localStorage
+      const reader = new FileReader();
+      reader.onload = function() {
+        const base64data = reader.result as string;
+        
+        // Almacenar en localStorage
+        try {
+          localStorage.setItem(`pdf_${pdfName}`, base64data);
+          
+          // Crear URL del blob y abrir en nueva pestaña
+          const pdfUrl = URL.createObjectURL(pdfBlob);
+          const newWindow = window.open(pdfUrl, '_blank');
+          
+          if (newWindow) {
+            newWindow.document.title = `${pdfName}.pdf`;
+            showSnackbar('PDF generado y almacenado exitosamente', 'success');
+          } else {
+            showSnackbar('PDF generado pero no se pudo abrir en nueva pestaña', 'warning');
+          }
+          
+          // Limpiar URL después de un tiempo
+          setTimeout(() => {
+            URL.revokeObjectURL(pdfUrl);
+          }, 10000);
+          
+        } catch (error) {
+          console.error('Error storing PDF in localStorage:', error);
+          showSnackbar('PDF generado pero no se pudo almacenar localmente', 'warning');
+          
+          // Fallback: abrir en nueva pestaña sin almacenar
+          const pdfUrl = URL.createObjectURL(pdfBlob);
+          window.open(pdfUrl, '_blank');
+        }
+      };
+      
+      reader.readAsDataURL(pdfBlob);
 
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -342,7 +375,7 @@ const HorariosPage = () => {
   };
 
   // Mostrar mensaje
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+  const showSnackbar = (message: string, severity: 'success' | 'error' | 'warning') => {
     setSnackbar({ open: true, message, severity });
   };
 
