@@ -145,6 +145,10 @@ const EditDialog = ({
   useEffect(() => {
     console.log('Current Horario:', currentHorario);
     console.log('Filtered TrayectosUC:', filteredTrayectosUC);
+    if (currentHorario) {
+      console.log('dia_id:', currentHorario.dia_id);
+      console.log('bloque_id:', currentHorario.bloque_id);
+    }
   }, [currentHorario, trayectosUC, filteredTrayectosUC]);
 
   // Verificar si currentHorario es null o undefined
@@ -207,11 +211,12 @@ const EditDialog = ({
   ];
 
   const handleSubmit = (values: any) => {
+    // IMPORTANTE: Usar los valores originales de dia_id y bloque_id del horario actual
     const formattedValues = {
       horario_id: Number(values.horario_id),
       trayecto_uc_id: Number(values.trayecto_uc_id),
-      dia_id: Number(values.dia_id),
-      bloque_id: Number(values.bloque_id),
+      dia_id: currentHorario?.dia_id || 0, // Usar el valor original del horario
+      bloque_id: currentHorario?.bloque_id || 0, // Usar el valor original del horario
       aula_id: Number(values.aula_id),
       profesor_id: Number(values.profesor_id),
       color: values.color,
@@ -299,6 +304,12 @@ const EditDialog = ({
                     {colorPalette.find(c => c.value === currentHorario.color)?.name || currentHorario.color || '#1976d2'}
                   </Typography>
                 </Box>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="textSecondary">IDs de referencia:</Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Día ID: {currentHorario.dia_id} | Bloque ID: {currentHorario.bloque_id}
+                </Typography>
               </Grid>
             </Grid>
           </Paper>
