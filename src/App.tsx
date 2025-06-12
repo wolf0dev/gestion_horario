@@ -7,7 +7,6 @@ import MainLayout from './layouts/MainLayout';
 
 // Auth Pages
 import Login from './modules/auth/pages/Login';
-import Register from './modules/auth/pages/Register';
 
 // Protected Routes
 import ProtectedRoute from './components/ProtectedRoute';
@@ -42,7 +41,6 @@ function App() {
         <Routes>
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
-          <Route path="/registro" element={<Register />} />
           
           {/* Protected Routes */}
           <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
@@ -50,29 +48,134 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             
             {/* Recursos */}
-            <Route path="/aulas" element={<AulasPage />} />
-            <Route path="/profesores" element={<ProfesoresPage />} />
-            <Route path="/bloques-horarios" element={<BloquesHorariosPage />} />
-            <Route path="/dias-semana" element={<DiasSemanaPage />} />
+            <Route 
+              path="/aulas" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_aulas']}>
+                  <AulasPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profesores" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_profesores']}>
+                  <ProfesoresPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/bloques-horarios" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_horarios']}>
+                  <BloquesHorariosPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dias-semana" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_horarios']}>
+                  <DiasSemanaPage />
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Académico */}
-            <Route path="/unidades-curriculares" element={<UnidadesCurricularesPage />} />
-            <Route path="/trayectos" element={<TrayectosPage />} />
-            <Route path="/trayectos-uc" element={<TrayectosUCPage />} />
+            <Route 
+              path="/unidades-curriculares" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_uc']}>
+                  <UnidadesCurricularesPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/trayectos" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_trayectos']}>
+                  <TrayectosPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/trayectos-uc" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_uc', 'gestion_trayectos']}>
+                  <TrayectosUCPage />
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Horarios */}
-            <Route path="/horarios" element={<HorariosPage />} />
+            <Route 
+              path="/horarios" 
+              element={
+                <ProtectedRoute requiredPermissions={['consultar_horarios', 'gestion_horarios']}>
+                  <HorariosPage />
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Disponibilidad */}
-            <Route path="/disponibilidad-profesores" element={<DisponibilidadProfesoresPage />} />
-            <Route path="/disponibilidad-aulas" element={<DisponibilidadAulasPage />} />
+            <Route 
+              path="/disponibilidad-profesores" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_horarios']}>
+                  <DisponibilidadProfesoresPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/disponibilidad-aulas" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_horarios']}>
+                  <DisponibilidadAulasPage />
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Administración */}
-            <Route path="/usuarios" element={<UsuariosPage />} />
-            <Route path="/roles" element={<RolesPage />} />
-            <Route path="/permisos" element={<PermisosPage />} />
-            <Route path="/usuarios-roles" element={<UsuariosRolesPage />} />
-            <Route path="/roles-permisos" element={<RolesPermisosPage />} />
+            <Route 
+              path="/usuarios" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_usuarios']}>
+                  <UsuariosPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/roles" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_roles']}>
+                  <RolesPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/permisos" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_roles']}>
+                  <PermisosPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/usuarios-roles" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_usuarios', 'gestion_roles']}>
+                  <UsuariosRolesPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/roles-permisos" 
+              element={
+                <ProtectedRoute requiredPermissions={['gestion_roles']}>
+                  <RolesPermisosPage />
+                </ProtectedRoute>
+              } 
+            />
           </Route>
           
           {/* Catch all route */}

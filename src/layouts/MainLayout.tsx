@@ -21,6 +21,7 @@ import {
   useTheme,
   Tooltip,
   Collapse,
+  Chip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -101,46 +102,130 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   justifyContent: 'flex-end',
 }));
 
-// Estructura del menú con submenús
+// Estructura del menú con permisos requeridos
 const menuStructure = [
-  { text: 'Dashboard', icon: <DashboardIcon size={20} />, path: '/dashboard' },
-  { text: 'Horarios', icon: <CalendarIcon size={20} />, path: '/horarios' },
+  { 
+    text: 'Dashboard', 
+    icon: <DashboardIcon size={20} />, 
+    path: '/dashboard',
+    permissions: [] // Dashboard accesible para todos los usuarios autenticados
+  },
+  { 
+    text: 'Horarios', 
+    icon: <CalendarIcon size={20} />, 
+    path: '/horarios',
+    permissions: ['consultar_horarios', 'gestion_horarios']
+  },
   {
     text: 'Recursos',
     icon: <SettingsIcon size={20} />,
+    permissions: ['gestion_aulas', 'gestion_profesores'],
     children: [
-      { text: 'Aulas', icon: <HomeIcon size={18} />, path: '/aulas' },
-      { text: 'Profesores', icon: <UsersIcon size={18} />, path: '/profesores' },
-      { text: 'Bloques Horarios', icon: <ClockIcon size={18} />, path: '/bloques-horarios' },
-      { text: 'Días de la Semana', icon: <CalendarDaysIcon size={18} />, path: '/dias-semana' },
+      { 
+        text: 'Aulas', 
+        icon: <HomeIcon size={18} />, 
+        path: '/aulas',
+        permissions: ['gestion_aulas']
+      },
+      { 
+        text: 'Profesores', 
+        icon: <UsersIcon size={18} />, 
+        path: '/profesores',
+        permissions: ['gestion_profesores']
+      },
+      { 
+        text: 'Bloques Horarios', 
+        icon: <ClockIcon size={18} />, 
+        path: '/bloques-horarios',
+        permissions: ['gestion_horarios']
+      },
+      { 
+        text: 'Días de la Semana', 
+        icon: <CalendarDaysIcon size={18} />, 
+        path: '/dias-semana',
+        permissions: ['gestion_horarios']
+      },
     ]
   },
   {
     text: 'Académico',
     icon: <BookIcon size={20} />,
+    permissions: ['gestion_uc', 'gestion_trayectos'],
     children: [
-      { text: 'Unidades Curriculares', icon: <BookIcon size={18} />, path: '/unidades-curriculares' },
-      { text: 'Trayectos', icon: <BookOpenIcon size={18} />, path: '/trayectos' },
-      { text: 'Trayectos - UC', icon: <LinkIcon size={18} />, path: '/trayectos-uc' },
+      { 
+        text: 'Unidades Curriculares', 
+        icon: <BookIcon size={18} />, 
+        path: '/unidades-curriculares',
+        permissions: ['gestion_uc']
+      },
+      { 
+        text: 'Trayectos', 
+        icon: <BookOpenIcon size={18} />, 
+        path: '/trayectos',
+        permissions: ['gestion_trayectos']
+      },
+      { 
+        text: 'Trayectos - UC', 
+        icon: <LinkIcon size={18} />, 
+        path: '/trayectos-uc',
+        permissions: ['gestion_uc', 'gestion_trayectos']
+      },
     ]
   },
   {
     text: 'Disponibilidad',
     icon: <UserCheckIcon size={20} />,
+    permissions: ['gestion_horarios'],
     children: [
-      { text: 'Profesores', icon: <UsersIcon size={18} />, path: '/disponibilidad-profesores' },
-      { text: 'Aulas', icon: <MapPinIcon size={18} />, path: '/disponibilidad-aulas' },
+      { 
+        text: 'Profesores', 
+        icon: <UsersIcon size={18} />, 
+        path: '/disponibilidad-profesores',
+        permissions: ['gestion_horarios']
+      },
+      { 
+        text: 'Aulas', 
+        icon: <MapPinIcon size={18} />, 
+        path: '/disponibilidad-aulas',
+        permissions: ['gestion_horarios']
+      },
     ]
   },
   {
     text: 'Administración',
     icon: <UserCogIcon size={20} />,
+    permissions: ['gestion_usuarios', 'gestion_roles'],
     children: [
-      { text: 'Usuarios', icon: <UserCogIcon size={18} />, path: '/usuarios' },
-      { text: 'Roles', icon: <ShieldIcon size={18} />, path: '/roles' },
-      { text: 'Permisos', icon: <KeyIcon size={18} />, path: '/permisos' },
-      { text: 'Usuarios - Roles', icon: <LinkIcon size={18} />, path: '/usuarios-roles' },
-      { text: 'Roles - Permisos', icon: <LinkIcon size={18} />, path: '/roles-permisos' },
+      { 
+        text: 'Usuarios', 
+        icon: <UserCogIcon size={18} />, 
+        path: '/usuarios',
+        permissions: ['gestion_usuarios']
+      },
+      { 
+        text: 'Roles', 
+        icon: <ShieldIcon size={18} />, 
+        path: '/roles',
+        permissions: ['gestion_roles']
+      },
+      { 
+        text: 'Permisos', 
+        icon: <KeyIcon size={18} />, 
+        path: '/permisos',
+        permissions: ['gestion_roles']
+      },
+      { 
+        text: 'Usuarios - Roles', 
+        icon: <LinkIcon size={18} />, 
+        path: '/usuarios-roles',
+        permissions: ['gestion_usuarios', 'gestion_roles']
+      },
+      { 
+        text: 'Roles - Permisos', 
+        icon: <LinkIcon size={18} />, 
+        path: '/roles-permisos',
+        permissions: ['gestion_roles']
+      },
     ]
   },
 ];
@@ -151,7 +236,7 @@ export default function MainLayout() {
   const [open, setOpen] = useState(!isMobile);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
-  const { logout, user } = useAuth();
+  const { logout, user, userRoles, hasAnyPermission } = useAuth();
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -181,9 +266,30 @@ export default function MainLayout() {
     }));
   };
 
+  // Función para verificar si el usuario tiene acceso a un elemento del menú
+  const hasMenuAccess = (item: any): boolean => {
+    if (!item.permissions || item.permissions.length === 0) {
+      return true; // Si no hay permisos requeridos, es accesible para todos
+    }
+    return hasAnyPermission(item.permissions);
+  };
+
   const renderMenuItem = (item: any, level = 0) => {
+    // Verificar si el usuario tiene acceso a este elemento
+    if (!hasMenuAccess(item)) {
+      return null;
+    }
+
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedMenus[item.text];
+
+    // Si tiene hijos, verificar si al menos uno es accesible
+    if (hasChildren) {
+      const accessibleChildren = item.children.filter((child: any) => hasMenuAccess(child));
+      if (accessibleChildren.length === 0) {
+        return null; // No mostrar el menú padre si no hay hijos accesibles
+      }
+    }
 
     return (
       <Box key={item.text}>
@@ -281,8 +387,22 @@ export default function MainLayout() {
                 <ListItemIcon>
                   <UserIcon size={18} />
                 </ListItemIcon>
-                <Typography textAlign="center">Perfil</Typography>
+                <Box>
+                  <Typography textAlign="left">{user?.username}</Typography>
+                  <Box sx={{ mt: 0.5 }}>
+                    {userRoles.map((role, index) => (
+                      <Chip 
+                        key={index}
+                        label={role} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ mr: 0.5, mb: 0.5, fontSize: '0.7rem' }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
               </MenuItem>
+              <Divider />
               <MenuItem onClick={handleLogout}>
                 <ListItemIcon>
                   <LogOutIcon size={18} />

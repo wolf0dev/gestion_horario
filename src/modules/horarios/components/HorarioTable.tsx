@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Paper,
   Box,
@@ -62,6 +62,7 @@ const HorarioTable = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+  const [hoveredCell, setHoveredCell] = useState<string | null>(null);
 
   useEffect(() => {
   }, [horarios, trayectos, diasSemana, bloquesHorarios]);
@@ -106,6 +107,14 @@ const HorarioTable = ({
     // Si no, usar un color por defecto basado en el nombre de la UC
     const index = horario.uc_nombre.charCodeAt(0) % defaultColors.length;
     return defaultColors[index];
+  };
+
+  // Función para manejar el clic en la celda
+  const handleCellClick = (diaId: number, bloqueId: number, horario: Horario | null) => {
+    // Solo permitir agregar si no hay horario existente
+    if (!horario) {
+      onCellClick(diaId, bloqueId);
+    }
   };
 
   // Configuración responsiva para el tamaño de las celdas
@@ -240,14 +249,18 @@ const HorarioTable = ({
                   {diasSemana.map((dia) => {
                     const horario = getHorarioForCell(dia.nombre_dia, bloque.nombre_bloque);
                     const backgroundColor = horario ? getColorForHorario(horario) : 'transparent';
+                    const cellKey = `${dia.dia_id}-${bloque.bloque_id}`;
+                    const isHovered = hoveredCell === cellKey;
                     
                     return (
                       <TableCell
-                        key={`${dia.dia_id}-${bloque.bloque_id}`}
+                        key={cellKey}
                         align="center"
-                        onClick={!isForPrint ? () => onCellClick(dia.dia_id, bloque.bloque_id) : undefined}
+                        onClick={!isForPrint ? () => handleCellClick(dia.dia_id, bloque.bloque_id, horario) : undefined}
+                        onMouseEnter={() => !isForPrint && setHoveredCell(cellKey)}
+                        onMouseLeave={() => !isForPrint && setHoveredCell(null)}
                         sx={{
-                          cursor: !isForPrint ? 'pointer' : 'default',
+                          cursor: !isForPrint ? (horario ? 'default' : 'pointer') : 'default',
                           backgroundColor: backgroundColor,
                           p: { xs: 0.5, sm: 1 },
                           width: cellWidth,
@@ -264,6 +277,7 @@ const HorarioTable = ({
                           verticalAlign: 'top',
                           transition: 'all 0.2s ease-in-out',
                           borderRight: `1px solid ${theme.palette.divider}`,
+                          position: 'relative',
                         }}
                       >
                         {horario ? (
@@ -274,7 +288,8 @@ const HorarioTable = ({
                             alignItems: 'center',
                             justifyContent: 'center',
                             height: '100%',
-                            gap: { xs: 0.25, sm: 0.5 }
+                            gap: { xs: 0.25, sm: 0.5 },
+                            position: 'relative',
                           }}>
                             <Typography
                               variant="subtitle2"
@@ -317,14 +332,18 @@ const HorarioTable = ({
                             >
                               🏫 {horario.aula_nombre}
                             </Typography>
-                            {!isForPrint && (
+                            
+                            {/* Botones que aparecen solo al hacer hover */}
+                            {!isForPrint && isHovered && (
                               <Box sx={{ 
-                                mt: 0.5, 
+                                position: 'absolute',
+                                top: 4,
+                                right: 4,
                                 display: 'flex', 
-                                justifyContent: 'center', 
-                                gap: 0.25,
-                                opacity: { xs: 1, sm: 0.8 },
-                                '&:hover': { opacity: 1 }
+                                flexDirection: 'column',
+                                gap: 0.5,
+                                opacity: 1,
+                                transition: 'opacity 0.2s ease-in-out',
                               }}>
                                 <IconButton
                                   size="small"
@@ -333,14 +352,18 @@ const HorarioTable = ({
                                     onEditHorario(horario);
                                   }}
                                   sx={{
-                                    bgcolor: 'rgba(255,255,255,0.2)',
-                                    color: 'white',
+                                    bgcolor: 'rgba(255,255,255,0.9)',
+                                    color: theme.palette.primary.main,
                                     width: { xs: 20, sm: 24 },
                                     height: { xs: 20, sm: 24 },
-                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
+                                    '&:hover': { 
+                                      bgcolor: 'rgba(255,255,255,1)',
+                                      transform: 'scale(1.1)',
+                                    },
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
                                   }}
                                 >
-                                  <EditIcon size={isSmall ? 10 : 14} />
+                                  <EditIcon size={isSmall ? 10 : 12} />
                                 </IconButton>
                                 <IconButton
                                   size="small"
@@ -349,14 +372,18 @@ const HorarioTable = ({
                                     onDeleteHorario(horario);
                                   }}
                                   sx={{
-                                    bgcolor: 'rgba(255,0,0,0.2)',
-                                    color: 'white',
+                                    bgcolor: 'rgba(255,255,255,0.9)',
+                                    color: theme.palette.error.main,
                                     width: { xs: 20, sm: 24 },
                                     height: { xs: 20, sm: 24 },
-                                    '&:hover': { bgcolor: 'rgba(255,0,0,0.3)' },
+                                    '&:hover': { 
+                                      bgcolor: 'rgba(255,255,255,1)',
+                                      transform: 'scale(1.1)',
+                                    },
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
                                   }}
                                 >
-                                  <TrashIcon size={isSmall ? 10 : 14} />
+                                  <TrashIcon size={isSmall ? 10 : 12} />
                                 </IconButton>
                               </Box>
                             )}
@@ -369,6 +396,7 @@ const HorarioTable = ({
                             justifyContent: 'center',
                             height: '100%',
                           }}>
+                            {/* Celda vacía - solo se puede hacer clic para agregar */}
                           </Box>
                         )}
                       </TableCell>

@@ -43,7 +43,6 @@ const UsuariosPage = () => {
   const columns: Column<Usuario>[] = [
     { id: 'username', label: 'Usuario', minWidth: 150, sortable: true },
     { id: 'email', label: 'Email', minWidth: 200, sortable: true },
-    { id: 'rol', label: 'Rol', minWidth: 150, sortable: true },
     { 
       id: 'activo', 
       label: 'Estado', 
@@ -54,7 +53,7 @@ const UsuariosPage = () => {
   ];
 
   // Definición de campos para el formulario
-  const formFields: FormField[] = [
+  const getFormFields = (): FormField[] => [
     { 
       name: 'username', 
       label: 'Usuario', 
@@ -71,18 +70,20 @@ const UsuariosPage = () => {
       xs: 12,
       sm: 6,
     },
-    { 
-      name: 'password', 
-      label: 'Contraseña', 
-      type: 'password', 
-      required: true,
-      xs: 12,
-      sm: 6,
-    },
+    ...(currentUsuario ? [] : [
+      { 
+        name: 'password', 
+        label: 'Contraseña', 
+        type: 'password' as const, 
+        required: true,
+        xs: 12,
+        sm: 6,
+      }
+    ]),
     { 
       name: 'activo', 
       label: 'Activo', 
-      type: 'boolean',
+      type: 'boolean' as const,
       xs: 12,
     },
   ];
@@ -133,13 +134,17 @@ const UsuariosPage = () => {
     try {
       if (currentUsuario) {
         // Actualizar usuario existente
-        await api.put('/api/usuarios/actualizar', {
-          ...values,
+        const updateData = {
+          username: values.username,
+          email: values.email,
+          activo: values.activo,
           usuario_id: currentUsuario.usuario_id
-        });
+        };
+        
+        await api.put('/api/usuarios/actualizar', updateData);
         setUsuarios(usuarios.map(u => 
           u.usuario_id === currentUsuario.usuario_id 
-            ? { ...values, usuario_id: currentUsuario.usuario_id }
+            ? { ...updateData, usuario_id: currentUsuario.usuario_id }
             : u
         ));
         showSnackbar('Usuario actualizado exitosamente', 'success');
@@ -179,8 +184,8 @@ const UsuariosPage = () => {
 
       <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
         <Typography variant="body1" gutterBottom>
-          Administre los usuarios del sistema. Puede agregar nuevos usuarios,
-          editar la información de los existentes o desactivar cuentas.
+          Administre los usuarios del sistema. Solo los administradores pueden crear nuevos usuarios
+          y asignar roles. Los usuarios necesitan ser asignados a roles para acceder a las funcionalidades.
         </Typography>
       </Paper>
 
@@ -192,7 +197,7 @@ const UsuariosPage = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         searchable={true}
-        searchKeys={['username', 'email', 'rol']}
+        searchKeys={['username', 'email']}
       />
 
       {/* Diálogo para agregar/editar */}
@@ -219,11 +224,11 @@ const UsuariosPage = () => {
         <DialogContent>
           <GenericForm
             title=""
-            fields={formFields}
+            fields={getFormFields()}
             initialValues={currentUsuario || initialValues}
             onSubmit={handleSubmit}
             onCancel={() => setOpenDialog(false)}
-            submitButtonText={currentUsuario ? 'Actualizar' : 'Guardar'}
+            submitButtonText={currentUsuario ? 'Actualizar' : 'Crear Usuario'}
           />
         </DialogContent>
       </Dialog>

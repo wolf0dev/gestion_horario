@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Button,
   TextField,
   Typography,
-  Link,
   Alert,
   CircularProgress,
   Stack,
@@ -254,23 +252,8 @@ const Login = () => {
             sx={{ mt: 2 }}
           >
             <Typography variant="body2" color="text.secondary">
-              ¿No tienes cuenta?
+              ¿Necesitas acceso? Contacta al administrador del sistema.
             </Typography>
-            <Link
-              component={RouterLink}
-              to="/registro"
-              variant="body2"
-              sx={{
-                fontWeight: 600,
-                color: theme.palette.primary.main,
-                textDecoration: 'none',
-                '&:hover': {
-                  textDecoration: 'underline',
-                },
-              }}
-            >
-              Regístrate aquí
-            </Link>
           </Stack>
         </Box>
       </Box>

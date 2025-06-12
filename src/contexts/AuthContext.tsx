@@ -7,23 +7,36 @@ interface User {
   id: number;
   username: string;
   email: string;
-  role?: string;
+  roles?: string[];
+  permissions?: string[];
 }
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
+  userRoles: string[];
+  userPermissions: string[];
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  hasPermission: (permission: string) => boolean;
+  hasRole: (role: string) => boolean;
+  hasAnyPermission: (permissions: string[]) => boolean;
+  hasAnyRole: (roles: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isLoading: true,
   user: null,
+  userRoles: [],
+  userPermissions: [],
   login: async () => {},
   logout: () => {},
+  hasPermission: () => false,
+  hasRole: () => false,
+  hasAnyPermission: () => false,
+  hasAnyRole: () => false,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -34,6 +47,8 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -65,12 +80,35 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const fetchUserData = async (userId: number) => {
     try {
-      const response = await api.get(`/api/usuarios/${userId}`);
-      setUser(response.data);
+      // Obtener datos del usuario
+      const userResponse = await api.get(`/api/usuarios/${userId}`);
+      const userData = userResponse.data;
+
+      // Obtener roles del usuario
+      const rolesResponse = await api.get('/api/usuarios-roles/vista');
+      const userRolesData = rolesResponse.data.filter(
+        (ur: any) => ur.usuario_nombre === userData.username
+      );
+      const roles = userRolesData.map((ur: any) => ur.rol_nombre);
+
+      // Obtener permisos basados en los roles
+      const permissionsResponse = await api.get('/api/roles-permisos/vista');
+      const userPermissions = permissionsResponse.data
+        .filter((rp: any) => roles.includes(rp.rol_nombre))
+        .map((rp: any) => rp.permiso_nombre);
+
+      // Eliminar duplicados
+      const uniquePermissions = [...new Set(userPermissions)];
+
+      setUser({ ...userData, roles, permissions: uniquePermissions });
+      setUserRoles(roles);
+      setUserPermissions(uniquePermissions);
     } catch (error) {
       console.error('Error fetching user data:', error);
       localStorage.removeItem('token');
       setUser(null);
+      setUserRoles([]);
+      setUserPermissions([]);
     } finally {
       setIsLoading(false);
     }
@@ -97,7 +135,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem('token');
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
+    setUserRoles([]);
+    setUserPermissions([]);
     navigate('/login');
+  };
+
+  // Funciones de verificación de permisos
+  const hasPermission = (permission: string): boolean => {
+    return userPermissions.includes(permission);
+  };
+
+  const hasRole = (role: string): boolean => {
+    return userRoles.includes(role);
+  };
+
+  const hasAnyPermission = (permissions: string[]): boolean => {
+    return permissions.some(permission => userPermissions.includes(permission));
+  };
+
+  const hasAnyRole = (roles: string[]): boolean => {
+    return roles.some(role => userRoles.includes(role));
   };
 
   return (
@@ -106,8 +163,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         isAuthenticated: !!user,
         isLoading,
         user,
+        userRoles,
+        userPermissions,
         login,
         logout,
+        hasPermission,
+        hasRole,
+        hasAnyPermission,
+        hasAnyRole,
       }}
     >
       {children}
