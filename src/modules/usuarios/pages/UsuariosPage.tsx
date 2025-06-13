@@ -21,14 +21,15 @@ interface Usuario {
   usuario_id: number;
   username: string;
   email: string;
+  nombre_completo: string;
   activo: boolean;
-  rol?: string;
 }
 
 // Valores iniciales para un usuario nuevo
 const initialValues: Omit<Usuario, 'usuario_id'> = {
   username: '',
   email: '',
+  nombre_completo: '',
   activo: true,
 };
 
@@ -42,6 +43,7 @@ const UsuariosPage = () => {
   // Definición de columnas para la tabla
   const columns: Column<Usuario>[] = [
     { id: 'username', label: 'Usuario', minWidth: 150, sortable: true },
+    { id: 'nombre_completo', label: 'Nombre Completo', minWidth: 200, sortable: true },
     { id: 'email', label: 'Email', minWidth: 200, sortable: true },
     { 
       id: 'activo', 
@@ -56,7 +58,15 @@ const UsuariosPage = () => {
   const getFormFields = (): FormField[] => [
     { 
       name: 'username', 
-      label: 'Usuario', 
+      label: 'Nombre de Usuario', 
+      type: 'text', 
+      required: true,
+      xs: 12,
+      sm: 6,
+    },
+    { 
+      name: 'nombre_completo', 
+      label: 'Nombre Completo', 
       type: 'text', 
       required: true,
       xs: 12,
@@ -64,13 +74,23 @@ const UsuariosPage = () => {
     },
     { 
       name: 'email', 
-      label: 'Email', 
+      label: 'Correo Electrónico', 
       type: 'email', 
       required: true,
       xs: 12,
       sm: 6,
     },
-    ...(currentUsuario ? [] : [
+    ...(currentUsuario ? [
+      { 
+        name: 'password', 
+        label: 'Nueva Contraseña (opcional)', 
+        type: 'password' as const, 
+        required: false,
+        placeholder: 'Dejar vacío para mantener la actual',
+        xs: 12,
+        sm: 6,
+      }
+    ] : [
       { 
         name: 'password', 
         label: 'Contraseña', 
@@ -82,7 +102,7 @@ const UsuariosPage = () => {
     ]),
     { 
       name: 'activo', 
-      label: 'Activo', 
+      label: 'Usuario Activo', 
       type: 'boolean' as const,
       xs: 12,
     },
@@ -134,23 +154,44 @@ const UsuariosPage = () => {
     try {
       if (currentUsuario) {
         // Actualizar usuario existente
-        const updateData = {
+        const updateData: any = {
+          usuario_id: currentUsuario.usuario_id,
           username: values.username,
           email: values.email,
-          activo: values.activo,
-          usuario_id: currentUsuario.usuario_id
+          nombre_completo: values.nombre_completo,
+          activo: values.activo
         };
+
+        // Solo incluir password si se proporcionó una nueva
+        if (values.password && values.password.trim() !== '') {
+          updateData.password = values.password;
+        }
         
         await api.put('/api/usuarios/actualizar', updateData);
+        
+        // Actualizar el estado local
         setUsuarios(usuarios.map(u => 
           u.usuario_id === currentUsuario.usuario_id 
-            ? { ...updateData, usuario_id: currentUsuario.usuario_id }
+            ? { 
+                usuario_id: currentUsuario.usuario_id,
+                username: values.username,
+                email: values.email,
+                nombre_completo: values.nombre_completo,
+                activo: values.activo
+              }
             : u
         ));
         showSnackbar('Usuario actualizado exitosamente', 'success');
       } else {
         // Crear nuevo usuario
-        await api.post('/api/auth/registro', values);
+        await api.post('/api/auth/registro', {
+          username: values.username,
+          email: values.email,
+          nombre_completo: values.nombre_completo,
+          password: values.password,
+          activo: values.activo
+        });
+        
         // Recargar la lista para obtener el ID generado
         const response = await api.get('/api/usuarios/todos');
         setUsuarios(response.data);
@@ -192,12 +233,12 @@ const UsuariosPage = () => {
       <GenericTable
         columns={columns}
         data={usuarios}
-        title="Usuarios"
+        title="Usuarios del Sistema"
         onAdd={handleAdd}
         onEdit={handleEdit}
         onDelete={handleDelete}
         searchable={true}
-        searchKeys={['username', 'email']}
+        searchKeys={['username', 'nombre_completo', 'email']}
       />
 
       {/* Diálogo para agregar/editar */}
@@ -225,10 +266,16 @@ const UsuariosPage = () => {
           <GenericForm
             title=""
             fields={getFormFields()}
-            initialValues={currentUsuario || initialValues}
+            initialValues={currentUsuario ? {
+              username: currentUsuario.username,
+              nombre_completo: currentUsuario.nombre_completo,
+              email: currentUsuario.email,
+              password: '',
+              activo: currentUsuario.activo
+            } : initialValues}
             onSubmit={handleSubmit}
             onCancel={() => setOpenDialog(false)}
-            submitButtonText={currentUsuario ? 'Actualizar' : 'Crear Usuario'}
+            submitButtonText={currentUsuario ? 'Actualizar Usuario' : 'Crear Usuario'}
           />
         </DialogContent>
       </Dialog>

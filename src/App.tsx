@@ -23,6 +23,7 @@ import RolesPage from './modules/roles/pages/RolesPage';
 import PermisosPage from './modules/permisos/pages/PermisosPage';
 import BloquesHorariosPage from './modules/bloques-horarios/pages/BloquesHorariosPage';
 import DiasSemanaPage from './modules/dias-semana/pages/DiasSemanaPage';
+import PerfilPage from './modules/perfil/pages/PerfilPage';
 
 // Nuevos módulos
 import UsuariosRolesPage from './modules/usuarios-roles/pages/UsuariosRolesPage';
@@ -46,6 +47,9 @@ function App() {
           <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            
+            {/* Perfil - Accesible para todos los usuarios autenticados */}
+            <Route path="/perfil" element={<PerfilPage />} />
             
             {/* Recursos */}
             <Route 

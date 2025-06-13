@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import {
   Box,
@@ -232,6 +232,7 @@ const menuStructure = [
 
 export default function MainLayout() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [open, setOpen] = useState(!isMobile);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
@@ -257,6 +258,11 @@ export default function MainLayout() {
   const handleLogout = () => {
     handleCloseUserMenu();
     logout();
+  };
+
+  const handleNavigateToProfile = () => {
+    handleCloseUserMenu();
+    navigate('/perfil');
   };
 
   const toggleSubmenu = (menuText: string) => {
@@ -295,9 +301,8 @@ export default function MainLayout() {
       <Box key={item.text}>
         <ListItem disablePadding>
           <ListItemButton
-            component={hasChildren ? "div" : "a"}
-            href={hasChildren ? undefined : item.path}
             onClick={hasChildren ? () => toggleSubmenu(item.text) : () => {
+              navigate(item.path);
               if (isMobile) {
                 handleDrawerClose();
               }
@@ -383,7 +388,7 @@ export default function MainLayout() {
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
             >
-              <MenuItem onClick={handleCloseUserMenu}>
+              <MenuItem onClick={handleNavigateToProfile}>
                 <ListItemIcon>
                   <UserIcon size={18} />
                 </ListItemIcon>
