@@ -145,18 +145,12 @@ const EditDialog = ({
   useEffect(() => {
     console.log('Current Horario:', currentHorario);
     console.log('Filtered TrayectosUC:', filteredTrayectosUC);
-    if (currentHorario) {
-      console.log('dia_id:', currentHorario.dia_id);
-      console.log('bloque_id:', currentHorario.bloque_id);
-    }
   }, [currentHorario, trayectosUC, filteredTrayectosUC]);
 
   // Verificar si currentHorario es null o undefined
   const initialValues = currentHorario ? {
     horario_id: currentHorario.horario_id,
     trayecto_uc_id: currentHorario.trayecto_uc_id?.toString() || '',
-    dia_id: currentHorario.dia_id?.toString() || '',
-    bloque_id: currentHorario.bloque_id?.toString() || '',
     aula_id: currentHorario.aula_id?.toString() || '',
     profesor_id: currentHorario.profesor_id?.toString() || '',
     color: currentHorario.color || '#1976d2',
@@ -164,8 +158,6 @@ const EditDialog = ({
   } : {
     horario_id: '',
     trayecto_uc_id: '',
-    dia_id: '',
-    bloque_id: '',
     aula_id: '',
     profesor_id: '',
     color: '#1976d2',
@@ -211,19 +203,17 @@ const EditDialog = ({
   ];
 
   const handleSubmit = (values: any) => {
-    // IMPORTANTE: Usar los valores originales de dia_id y bloque_id del horario actual
+    // NO enviar dia_id y bloque_id - mantener los originales del horario
     const formattedValues = {
       horario_id: Number(values.horario_id),
       trayecto_uc_id: Number(values.trayecto_uc_id),
-      dia_id: currentHorario?.dia_id || 0, // Usar el valor original del horario
-      bloque_id: currentHorario?.bloque_id || 0, // Usar el valor original del horario
       aula_id: Number(values.aula_id),
       profesor_id: Number(values.profesor_id),
       color: values.color,
       activo: values.activo,
     };
     
-    console.log('Sending formatted values:', formattedValues);
+    console.log('Sending formatted values (sin dia_id y bloque_id):', formattedValues);
     onSubmit(formattedValues);
   };
 
@@ -304,12 +294,6 @@ const EditDialog = ({
                     {colorPalette.find(c => c.value === currentHorario.color)?.name || currentHorario.color || '#1976d2'}
                   </Typography>
                 </Box>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="body2" color="textSecondary">IDs de referencia:</Typography>
-                <Typography variant="body2" color="textSecondary">
-                  Día ID: {currentHorario.dia_id} | Bloque ID: {currentHorario.bloque_id}
-                </Typography>
               </Grid>
             </Grid>
           </Paper>
