@@ -83,8 +83,13 @@ const PerfilPage = () => {
 
   const handleSubmit = async (values: any, { setSubmitting }: any) => {
     try {
+      if (!user?.id) {
+        showSnackbar('Error: No se pudo identificar el usuario', 'error');
+        return;
+      }
+
       const updateData: any = {
-        usuario_id: user?.id,
+        usuario_id: user.id,
         username: values.username,
         email: values.email,
         nombre_completo: values.nombre_completo,
@@ -95,6 +100,8 @@ const PerfilPage = () => {
       if (values.password && values.password.trim() !== '') {
         updateData.password = values.password;
       }
+
+      console.log('Enviando datos de actualización:', updateData);
 
       await api.put('/api/usuarios/actualizar', updateData);
 
@@ -198,6 +205,15 @@ const PerfilPage = () => {
                   )}
                 </Box>
               </Box>
+
+              {/* Información de debug (solo en desarrollo) */}
+              {process.env.NODE_ENV === 'development' && (
+                <Box sx={{ mt: 2, p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
+                  <Typography variant="caption" color="textSecondary">
+                    ID: {user.id}
+                  </Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>
