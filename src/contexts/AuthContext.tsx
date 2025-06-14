@@ -7,6 +7,7 @@ interface User {
   id: number;
   username: string;
   email: string;
+  nombre_completo?: string;
   roles?: string[];
   permissions?: string[];
 }

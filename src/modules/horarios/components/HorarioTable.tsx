@@ -19,6 +19,8 @@ import {
   Clock as ClockIcon,
 } from 'lucide-react';
 
+import { useAuth } from '../../../contexts/AuthContext';
+
 interface Horario {
   horario_id: number;
   trayecto_nombre: string;
@@ -63,6 +65,10 @@ const HorarioTable = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
+  const { userRoles } = useAuth();
+
+  // Verificar si el usuario es solo "usuario asignado" (solo lectura)
+  const isReadOnlyUser = userRoles.length === 1 && userRoles.includes('usuario asignado');
 
   useEffect(() => {
   }, [horarios, trayectos, diasSemana, bloquesHorarios]);
@@ -111,8 +117,8 @@ const HorarioTable = ({
 
   // Función para manejar el clic en la celda
   const handleCellClick = (diaId: number, bloqueId: number, horario: Horario | null) => {
-    // Solo permitir agregar si no hay horario existente
-    if (!horario) {
+    // Solo permitir agregar si no hay horario existente y el usuario no es de solo lectura
+    if (!horario && !isReadOnlyUser) {
       onCellClick(diaId, bloqueId);
     }
   };
@@ -152,6 +158,11 @@ const HorarioTable = ({
           >
             Horario - {trayectos[tabValue]?.nombre || 'Seleccione un trayecto'}
           </Typography>
+          {isReadOnlyUser && (
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, opacity: 0.8 }}>
+              Modo solo lectura
+            </Typography>
+          )}
         </Box>
 
         <TableContainer sx={{ 
@@ -260,7 +271,7 @@ const HorarioTable = ({
                         onMouseEnter={() => !isForPrint && setHoveredCell(cellKey)}
                         onMouseLeave={() => !isForPrint && setHoveredCell(null)}
                         sx={{
-                          cursor: !isForPrint ? (horario ? 'default' : 'pointer') : 'default',
+                          cursor: !isForPrint ? (horario ? 'default' : (isReadOnlyUser ? 'default' : 'pointer')) : 'default',
                           backgroundColor: backgroundColor,
                           p: { xs: 0.5, sm: 1 },
                           width: cellWidth,
@@ -269,11 +280,11 @@ const HorarioTable = ({
                           '&:hover': !isForPrint ? {
                             backgroundColor: horario
                               ? `${backgroundColor}CC`
-                              : theme.palette.action.hover,
+                              : (isReadOnlyUser ? 'transparent' : theme.palette.action.hover),
                             transform: isMobile ? 'none' : 'scale(1.02)',
                           } : {},
                           borderRadius: 1,
-                          border: horario ? 'none' : (!isForPrint ? `2px dashed ${theme.palette.grey[300]}` : 'none'),
+                          border: horario ? 'none' : (!isForPrint && !isReadOnlyUser ? `2px dashed ${theme.palette.grey[300]}` : 'none'),
                           verticalAlign: 'top',
                           transition: 'all 0.2s ease-in-out',
                           borderRight: `1px solid ${theme.palette.divider}`,
@@ -333,8 +344,8 @@ const HorarioTable = ({
                               🏫 {horario.aula_nombre}
                             </Typography>
                             
-                            {/* Botones que aparecen solo al hacer hover */}
-                            {!isForPrint && isHovered && (
+                            {/* Botones que aparecen solo al hacer hover y si no es usuario de solo lectura */}
+                            {!isForPrint && isHovered && !isReadOnlyUser && (
                               <Box sx={{ 
                                 position: 'absolute',
                                 top: 4,
@@ -396,7 +407,7 @@ const HorarioTable = ({
                             justifyContent: 'center',
                             height: '100%',
                           }}>
-                            {/* Celda vacía - solo se puede hacer clic para agregar */}
+                            {/* Celda vacía - solo se puede hacer clic para agregar si no es usuario de solo lectura */}
                           </Box>
                         )}
                       </TableCell>
