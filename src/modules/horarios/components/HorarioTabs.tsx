@@ -1,13 +1,13 @@
 import { Paper, Tabs, Tab, Box, useTheme, useMediaQuery } from '@mui/material';
-import { BookOpen as BookOpenIcon } from 'lucide-react';
+import { Users as UsersIcon } from 'lucide-react';
 
 interface HorarioTabsProps {
-  trayectos: any[];
+  profesores: any[];
   tabValue: number;
   onTabChange: (event: React.SyntheticEvent, newValue: number) => void;
 }
 
-const HorarioTabs = ({ trayectos, tabValue, onTabChange }: HorarioTabsProps) => {
+const HorarioTabs = ({ profesores, tabValue, onTabChange }: HorarioTabsProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -42,9 +42,9 @@ const HorarioTabs = ({ trayectos, tabValue, onTabChange }: HorarioTabsProps) => 
           },
         }}
       >
-        {trayectos.map((trayecto, index) => (
+        {profesores.map((profesor, index) => (
           <Tab 
-            key={trayecto.trayecto_id} 
+            key={profesor.profesor_id} 
             label={
               <Box sx={{ 
                 display: 'flex', 
@@ -52,12 +52,12 @@ const HorarioTabs = ({ trayectos, tabValue, onTabChange }: HorarioTabsProps) => 
                 gap: { xs: 0.5, sm: 1 },
                 flexDirection: { xs: 'column', sm: 'row' }
               }}>
-                <BookOpenIcon size={isMobile ? 16 : 18} />
+                <UsersIcon size={isMobile ? 16 : 18} />
                 <Box sx={{ 
                   textAlign: { xs: 'center', sm: 'left' },
                   lineHeight: 1.2
                 }}>
-                  {trayecto.nombre}
+                  {`${profesor.nombre} ${profesor.apellido}`}
                 </Box>
               </Box>
             }

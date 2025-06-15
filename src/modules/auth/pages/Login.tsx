@@ -56,12 +56,20 @@ const Login = () => {
 
     try {
       await login(username, password);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Ocurrió un error al iniciar sesión');
+      // Si llegamos aquí, el login fue exitoso y el usuario será redirigido
+    } catch (err: any) {
+      // Mostrar el mensaje de error específico del API
+      let errorMessage = 'Ocurrió un error al iniciar sesión';
+      
+      if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
       }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -206,6 +214,7 @@ const Login = () => {
                     aria-label="toggle password visibility"
                     onClick={() => setShowPassword(!showPassword)}
                     edge="end"
+                    disabled={isLoading}
                   >
                     {showPassword ? <EyeOffIcon size={20} /> : <EyeIcon size={20} />}
                   </IconButton>

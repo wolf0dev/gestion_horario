@@ -128,35 +128,44 @@ const AssignDialog = ({
 }: AssignDialogProps) => {
   const theme = useTheme();
 
-  // Filtrar UCs por trayecto seleccionado
-  const filteredTrayectosUC = trayectosUC.filter(tuc =>
-    trayectos[tabValue] && tuc.trayecto_nombre === trayectos[tabValue].nombre
-  );
-
   useEffect(() => {
-  }, [trayectos, trayectosUC, tabValue, filteredTrayectosUC]);
+  }, [trayectos, trayectosUC, tabValue]);
 
   const initialValues = {
     trayecto_uc_id: '',
     dia_id: selectedCell?.dia || '',
     bloque_id: selectedCell?.bloque || '',
     aula_id: '',
-    profesor_id: '',
+    profesor_id: profesores[tabValue]?.profesor_id || '',
+    trayecto_id: '',
     color: '#1976d2',
     activo: true,
   };
 
   const formFields: FormField[] = [
     {
+      name: 'trayecto_id',
+      label: 'Trayecto',
+      type: 'select',
+      required: true,
+      options: trayectos.map(trayecto => ({
+        label: trayecto.nombre,
+        value: trayecto.trayecto_id
+      })),
+      xs: 12,
+      sm: 6,
+    },
+    {
       name: 'trayecto_uc_id',
       label: 'Unidad Curricular',
       type: 'select',
       required: true,
-      options: filteredTrayectosUC.map(tuc => ({
-        label: `${tuc.trayecto_nombre} - ${tuc.uc_nombre}`,
+      options: trayectosUC.map(tuc => ({
+        label: `${tuc.uc_codigo || ''} - ${tuc.uc_nombre}`,
         value: tuc.trayecto_uc_id
       })),
       xs: 12,
+      sm: 6,
     },
     {
       name: 'aula_id',
@@ -168,19 +177,6 @@ const AssignDialog = ({
         value: aula.aula_id
       })),
       xs: 12,
-      sm: 6,
-    },
-    {
-      name: 'profesor_id',
-      label: 'Profesor',
-      type: 'select',
-      required: true,
-      options: profesores.map(profesor => ({
-        label: `${profesor.nombre} ${profesor.apellido} - ${profesor.especialidad}`,
-        value: profesor.profesor_id
-      })),
-      xs: 12,
-      sm: 6,
     },
   ];
 
@@ -191,7 +187,8 @@ const AssignDialog = ({
       dia_id: selectedCell?.dia || Number(values.dia_id),
       bloque_id: selectedCell?.bloque || Number(values.bloque_id),
       aula_id: Number(values.aula_id),
-      profesor_id: Number(values.profesor_id),
+      profesor_id: profesores[tabValue]?.profesor_id || Number(values.profesor_id),
+      trayecto_id: Number(values.trayecto_id),
     };
     onSubmit(formattedValues);
   };
@@ -229,9 +226,9 @@ const AssignDialog = ({
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}>
-                <Typography variant="body2" color="textSecondary">Trayecto:</Typography>
+                <Typography variant="body2" color="textSecondary">Profesor:</Typography>
                 <Typography variant="body1" fontWeight="bold">
-                  {trayectos[tabValue]?.nombre}
+                  {profesores[tabValue] ? `${profesores[tabValue].nombre} ${profesores[tabValue].apellido}` : 'No seleccionado'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={4}>
@@ -250,41 +247,29 @@ const AssignDialog = ({
           </Paper>
         )}
 
-        {filteredTrayectosUC.length === 0 ? (
-          <Paper sx={{ p: 3, textAlign: 'center', bgcolor: theme.palette.warning.light }}>
-            <Typography variant="h6" color="warning.dark" gutterBottom>
-              No hay unidades curriculares disponibles
-            </Typography>
-            <Typography variant="body1" color="warning.dark">
-              No se encontraron unidades curriculares asignadas a este trayecto.
-              Por favor, asigne unidades curriculares al trayecto primero.
-            </Typography>
-          </Paper>
-        ) : (
-          <GenericForm
-            title=""
-            fields={formFields}
-            initialValues={initialValues}
-            onSubmit={handleSubmit}
-            onCancel={onClose}
-            submitButtonText="Asignar Clase"
-            customFields={{
-              color: (field: any, formikProps: any) => (
-                <Field name="color">
-                  {({ field: formikField, meta }: any) => (
-                    <ColorPicker
-                      name="color"
-                      value={formikField.value}
-                      onChange={formikField.onChange}
-                      error={meta.touched && meta.error ? true : false}
-                      helperText={meta.touched && meta.error ? meta.error : ''}
-                    />
-                  )}
-                </Field>
-              )
-            }}
-          />
-        )}
+        <GenericForm
+          title=""
+          fields={formFields}
+          initialValues={initialValues}
+          onSubmit={handleSubmit}
+          onCancel={onClose}
+          submitButtonText="Asignar Clase"
+          customFields={{
+            color: (field: any, formikProps: any) => (
+              <Field name="color">
+                {({ field: formikField, meta }: any) => (
+                  <ColorPicker
+                    name="color"
+                    value={formikField.value}
+                    onChange={formikField.onChange}
+                    error={meta.touched && meta.error ? true : false}
+                    helperText={meta.touched && meta.error ? meta.error : ''}
+                  />
+                )}
+              </Field>
+            )
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

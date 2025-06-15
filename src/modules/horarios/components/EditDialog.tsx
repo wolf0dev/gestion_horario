@@ -32,6 +32,7 @@ interface Horario {
   bloque_id: number;
   aula_id: number;
   profesor_id: number;
+  trayecto_id: number;
   color?: string;
   activo: boolean;
 }
@@ -40,9 +41,9 @@ interface EditDialogProps {
   open: boolean;
   onClose: () => void;
   currentHorario: Horario | null;
+  trayectos: any[];
   trayectosUC: any[];
   aulas: any[];
-  profesores: any[];
   onSubmit: (values: any) => void;
 }
 
@@ -130,51 +131,60 @@ const EditDialog = ({
   open,
   onClose,
   currentHorario,
+  trayectos,
   trayectosUC,
   aulas,
-  profesores,
   onSubmit,
 }: EditDialogProps) => {
   const theme = useTheme();
 
-  // Filtrar UCs por el trayecto del horario actual
-  const filteredTrayectosUC = currentHorario 
-    ? trayectosUC.filter(tuc => tuc.trayecto_nombre === currentHorario.trayecto_nombre)
-    : trayectosUC;
-
   useEffect(() => {
     console.log('Current Horario:', currentHorario);
-    console.log('Filtered TrayectosUC:', filteredTrayectosUC);
-  }, [currentHorario, trayectosUC, filteredTrayectosUC]);
+    console.log('Trayectos:', trayectos);
+    console.log('TrayectosUC:', trayectosUC);
+  }, [currentHorario, trayectos, trayectosUC]);
 
   // Verificar si currentHorario es null o undefined
   const initialValues = currentHorario ? {
     horario_id: currentHorario.horario_id,
+    trayecto_id: currentHorario.trayecto_id?.toString() || '',
     trayecto_uc_id: currentHorario.trayecto_uc_id?.toString() || '',
     aula_id: currentHorario.aula_id?.toString() || '',
-    profesor_id: currentHorario.profesor_id?.toString() || '',
     color: currentHorario.color || '#1976d2',
     activo: currentHorario.activo !== undefined ? currentHorario.activo : true,
   } : {
     horario_id: '',
+    trayecto_id: '',
     trayecto_uc_id: '',
     aula_id: '',
-    profesor_id: '',
     color: '#1976d2',
     activo: true,
   };
 
   const formFields: FormField[] = [
     {
+      name: 'trayecto_id',
+      label: 'Trayecto',
+      type: 'select',
+      required: true,
+      options: trayectos.map(trayecto => ({
+        label: trayecto.nombre,
+        value: trayecto.trayecto_id?.toString() || ''
+      })),
+      xs: 12,
+      sm: 6,
+    },
+    {
       name: 'trayecto_uc_id',
       label: 'Unidad Curricular',
       type: 'select',
       required: true,
-      options: filteredTrayectosUC.map(tuc => ({
+      options: trayectosUC.map(tuc => ({
         label: `${tuc.uc_codigo || ''} - ${tuc.uc_nombre || ''}`,
         value: tuc.trayecto_uc_id?.toString() || ''
       })),
       xs: 12,
+      sm: 6,
     },
     {
       name: 'aula_id',
@@ -186,34 +196,22 @@ const EditDialog = ({
         value: aula.aula_id?.toString() || ''
       })),
       xs: 12,
-      sm: 6,
-    },
-    {
-      name: 'profesor_id',
-      label: 'Profesor',
-      type: 'select',
-      required: true,
-      options: profesores.map(profesor => ({
-        label: `${profesor.nombre || ''} ${profesor.apellido || ''} - ${profesor.especialidad || ''}`,
-        value: profesor.profesor_id?.toString() || ''
-      })),
-      xs: 12,
-      sm: 6,
     },
   ];
 
   const handleSubmit = (values: any) => {
     // NO enviar dia_id y bloque_id - mantener los originales del horario
+    // NO enviar profesor_id - mantener el original del horario
     const formattedValues = {
       horario_id: Number(values.horario_id),
+      trayecto_id: Number(values.trayecto_id),
       trayecto_uc_id: Number(values.trayecto_uc_id),
       aula_id: Number(values.aula_id),
-      profesor_id: Number(values.profesor_id),
       color: values.color,
       activo: values.activo,
     };
     
-    console.log('Sending formatted values (sin dia_id y bloque_id):', formattedValues);
+    console.log('Sending formatted values (sin dia_id, bloque_id y profesor_id):', formattedValues);
     onSubmit(formattedValues);
   };
 
@@ -250,15 +248,21 @@ const EditDialog = ({
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2" color="textSecondary">Unidad Curricular:</Typography>
-                <Typography variant="body1" fontWeight="bold">
-                  {currentHorario.uc_nombre || 'No especificado'}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="textSecondary">Profesor:</Typography>
                 <Typography variant="body1" fontWeight="bold">
                   {currentHorario.profesor_nombre || 'No especificado'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="textSecondary">Trayecto:</Typography>
+                <Typography variant="body1" fontWeight="bold">
+                  {currentHorario.trayecto_nombre || 'No especificado'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="textSecondary">Unidad Curricular:</Typography>
+                <Typography variant="body1" fontWeight="bold">
+                  {currentHorario.uc_nombre || 'No especificado'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>

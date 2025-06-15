@@ -35,6 +35,7 @@ interface Horario {
   bloque_id: number;
   aula_id: number;
   profesor_id: number;
+  trayecto_id: number;
   color?: string;
   activo: boolean;
 }
@@ -45,6 +46,7 @@ interface HorarioForm {
   bloque_id: number;
   aula_id: number;
   profesor_id: number;
+  trayecto_id: number;
   color?: string;
   activo: boolean;
 }
@@ -61,12 +63,12 @@ const HorariosPage = () => {
   const [isExporting, setIsExporting] = useState(false);
 
   // Estados para datos
+  const [profesores, setProfesores] = useState<any[]>([]);
   const [trayectos, setTrayectos] = useState<any[]>([]);
   const [trayectosUC, setTrayectosUC] = useState<any[]>([]);
   const [diasSemana, setDiasSemana] = useState<any[]>([]);
   const [bloquesHorarios, setBloquesHorarios] = useState<any[]>([]);
   const [aulas, setAulas] = useState<any[]>([]);
-  const [profesores, setProfesores] = useState<any[]>([]);
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as const });
@@ -76,29 +78,29 @@ const HorariosPage = () => {
     const fetchData = async () => {
       try {
         const [
+          profesoresRes,
           trayectosRes,
           trayectosUCRes,
           diasRes,
           bloquesRes,
           aulasRes,
-          profesoresRes,
           horariosRes
         ] = await Promise.all([
+          api.get('/api/profesores/todos'),
           api.get('/api/trayectos/todos'),
           api.get('/api/trayectos-uc/vista'),
           api.get('/api/dias-semana/todos'),
           api.get('/api/bloques-horarios/todos'),
           api.get('/api/aulas/todas'),
-          api.get('/api/profesores/todos'),
           api.get('/api/horarios/vista')
         ]);
 
+        setProfesores(profesoresRes.data);
         setTrayectos(trayectosRes.data);
         setTrayectosUC(trayectosUCRes.data);
         setDiasSemana(diasRes.data);
         setBloquesHorarios(bloquesRes.data);
         setAulas(aulasRes.data);
-        setProfesores(profesoresRes.data);
         setHorarios(horariosRes.data);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -111,7 +113,7 @@ const HorariosPage = () => {
     fetchData();
   }, []);
 
-  // Cambiar de pestaña (trayecto)
+  // Cambiar de pestaña (profesor)
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
@@ -130,11 +132,11 @@ const HorariosPage = () => {
 
   // Obtener horario para una celda específica
   const getHorarioForCell = (diaId: number, bloqueId: number): Horario | null => {
-    const trayectoActual = trayectos[tabValue];
-    if (!trayectoActual) return null;
+    const profesorActual = profesores[tabValue];
+    if (!profesorActual) return null;
 
     return horarios.find(h =>
-      h.trayecto_nombre === trayectoActual.nombre &&
+      h.profesor_id === profesorActual.profesor_id &&
       h.dia_id === diaId &&
       h.bloque_id === bloqueId &&
       h.activo
@@ -150,6 +152,7 @@ const HorariosPage = () => {
         ...values,
         dia_id: selectedCell.dia,
         bloque_id: selectedCell.bloque,
+        profesor_id: profesores[tabValue]?.profesor_id,
       };
 
       await api.post('/api/horarios/registro', horarioData);
@@ -276,9 +279,9 @@ const HorariosPage = () => {
       pdf.setFontSize(20);
       pdf.text('Sistema de Gestión de Horarios UBV', pdfWidth / 2, 20, { align: 'center' });
 
-      if (trayectos[tabValue]) {
+      if (profesores[tabValue]) {
         pdf.setFontSize(16);
-        pdf.text(`Horario - ${trayectos[tabValue].nombre}`, pdfWidth / 2, 30, { align: 'center' });
+        pdf.text(`Horario - ${profesores[tabValue].nombre} ${profesores[tabValue].apellido}`, pdfWidth / 2, 30, { align: 'center' });
       }
 
       // Verificar si necesita múltiples páginas
@@ -326,8 +329,8 @@ const HorariosPage = () => {
       const pdfBlob = pdf.output('blob');
       
       // Crear nombre del archivo
-      const trayectoNombre = trayectos[tabValue]?.nombre || 'general';
-      const pdfName = `horario_${trayectoNombre.replace(/\s+/g, '_').toLowerCase()}`;
+      const profesorNombre = profesores[tabValue] ? `${profesores[tabValue].nombre}_${profesores[tabValue].apellido}` : 'general';
+      const pdfName = `horario_${profesorNombre.replace(/\s+/g, '_').toLowerCase()}`;
       
       // Convertir blob a base64 para almacenar en localStorage
       const reader = new FileReader();
@@ -409,22 +412,21 @@ const HorariosPage = () => {
         mb: { xs: 1, sm: 2 }
       }}>
         <HorarioHeader
-          trayectos={trayectos}
-          horarios={horarios}
           profesores={profesores}
+          trayectos={trayectos}
           aulas={aulas}
           isExporting={isExporting}
           onExportPDF={handleExportPDF}
         />
       </Box>
 
-      {/* Pestañas de trayectos */}
+      {/* Pestañas de profesores */}
       <Box sx={{ 
         width: '100%', 
         mb: { xs: 1, sm: 2 }
       }}>
         <HorarioTabs
-          trayectos={trayectos}
+          profesores={profesores}
           tabValue={tabValue}
           onTabChange={handleTabChange}
         />
@@ -433,7 +435,7 @@ const HorariosPage = () => {
       {/* Tabla de horarios */}
       <div ref={printRef} className="print-area">
         <HorarioTable
-          trayectos={trayectos}
+          profesores={profesores}
           diasSemana={diasSemana}
           bloquesHorarios={bloquesHorarios}
           horarios={horarios}
@@ -467,9 +469,9 @@ const HorariosPage = () => {
         open={openEditDialog}
         onClose={() => setOpenEditDialog(false)}
         currentHorario={currentHorario}
+        trayectos={trayectos}
         trayectosUC={trayectosUC}
         aulas={aulas}
-        profesores={profesores}
         onSubmit={handleUpdateHorario}
       />
 

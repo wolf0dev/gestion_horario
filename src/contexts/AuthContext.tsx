@@ -126,9 +126,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const decoded = jwtDecode<{ id: number }>(token);
       await fetchUserData(decoded.id);
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      throw new Error('Error al iniciar sesión. Verifique sus credenciales.');
+      
+      // Propagar el error completo para que el componente Login pueda manejarlo
+      if (error?.response?.data) {
+        throw error.response.data;
+      } else if (error?.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Error al iniciar sesión. Verifique sus credenciales.');
+      }
     }
   };
 

@@ -21,8 +21,8 @@ import {
 } from 'lucide-react';
 
 interface HorarioHeaderProps {
-  trayectos: any[];
   profesores: any[];
+  trayectos: any[];
   aulas: any[];
   isExporting: boolean;
   onPrint: () => void;
@@ -30,8 +30,8 @@ interface HorarioHeaderProps {
 }
 
 const HorarioHeader = ({
-  trayectos,
   profesores,
+  trayectos,
   aulas,
   isExporting,
   onExportPDF,
@@ -98,7 +98,7 @@ const HorarioHeader = ({
                   display: { xs: 'none', sm: 'block' }
                 }}
               >
-                Sistema integral de programación académica
+                Sistema integral de programación académica por profesor
               </Typography>
             </Box>
           </Box>
@@ -111,8 +111,8 @@ const HorarioHeader = ({
             useFlexGap
           >
             <Chip 
-              icon={<BookOpenIcon size={14} />}
-              label={`${trayectos.length} Trayecto${trayectos.length !== 1 ? 's' : ''}`}
+              icon={<UsersIcon size={14} />}
+              label={`${profesores.length} Prof${isMobile ? '.' : 'esores'}`}
               size={isMobile ? "small" : "medium"}
               sx={{ 
                 bgcolor: 'rgba(255,255,255,0.2)', 
@@ -122,8 +122,8 @@ const HorarioHeader = ({
               }}
             />
             <Chip 
-              icon={<UsersIcon size={14} />}
-              label={`${profesores.length} Prof${isMobile ? '.' : 'esores'}`}
+              icon={<BookOpenIcon size={14} />}
+              label={`${trayectos.length} Trayecto${trayectos.length !== 1 ? 's' : ''}`}
               size={isMobile ? "small" : "medium"}
               sx={{ 
                 bgcolor: 'rgba(255,255,255,0.2)', 

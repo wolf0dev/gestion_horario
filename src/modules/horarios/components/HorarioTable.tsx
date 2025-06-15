@@ -34,12 +34,13 @@ interface Horario {
   bloque_id: number;
   aula_id: number;
   profesor_id: number;
+  trayecto_id: number;
   color?: string;
   activo: boolean;
 }
 
 interface HorarioTableProps {
-  trayectos: any[];
+  profesores: any[];
   diasSemana: any[];
   bloquesHorarios: any[];
   horarios: Horario[];
@@ -51,7 +52,7 @@ interface HorarioTableProps {
 }
 
 const HorarioTable = ({
-  trayectos,
+  profesores,
   diasSemana,
   bloquesHorarios,
   horarios,
@@ -65,13 +66,13 @@ const HorarioTable = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
-  const { userRoles } = useAuth();
+  const { userRoles, hasPermission } = useAuth();
 
   // Verificar si el usuario es solo "usuario asignado" (solo lectura)
-  const isReadOnlyUser = userRoles.length === 1 && userRoles.includes('usuario asignado');
+  const isReadOnlyUser = userRoles.includes('usuario asignado') && !hasPermission('gestion_horarios');
 
   useEffect(() => {
-  }, [horarios, trayectos, diasSemana, bloquesHorarios]);
+  }, [horarios, profesores, diasSemana, bloquesHorarios]);
 
   const defaultColors = [
     '#1976d2',
@@ -89,13 +90,13 @@ const HorarioTable = ({
   ];
 
   const getHorarioForCell = (diaNombre: string, bloqueNombre: string): Horario | null => {
-    const trayectoActual = trayectos[tabValue];
-    if (!trayectoActual) {
+    const profesorActual = profesores[tabValue];
+    if (!profesorActual) {
       return null;
     }
 
     const horario = horarios.find(h =>
-      h.trayecto_nombre === trayectoActual.nombre &&
+      h.profesor_id === profesorActual.profesor_id &&
       h.dia_nombre === diaNombre &&
       h.bloque_nombre === bloqueNombre &&
       h.activo
@@ -156,7 +157,7 @@ const HorarioTable = ({
               fontSize: { xs: '1rem', sm: '1.25rem' }
             }}
           >
-            Horario - {trayectos[tabValue]?.nombre || 'Seleccione un trayecto'}
+            Horario - {profesores[tabValue] ? `${profesores[tabValue].nombre} ${profesores[tabValue].apellido}` : 'Seleccione un profesor'}
           </Typography>
           {isReadOnlyUser && (
             <Typography variant="caption" sx={{ display: 'block', mt: 0.5, opacity: 0.8 }}>
@@ -327,9 +328,9 @@ const HorarioTable = ({
                                 mb: 0.25,
                               }}
                             >
-                              👨‍🏫 {isSmall && horario.profesor_nombre.length > 12 
-                                ? `${horario.profesor_nombre.substring(0, 12)}...` 
-                                : horario.profesor_nombre}
+                              📚 {isSmall && horario.trayecto_nombre.length > 12 
+                                ? `${horario.trayecto_nombre.substring(0, 12)}...` 
+                                : horario.trayecto_nombre}
                             </Typography>
                             <Typography
                               variant="caption"
