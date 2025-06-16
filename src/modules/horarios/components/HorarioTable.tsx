@@ -29,14 +29,15 @@ interface Horario {
   aula_nombre: string;
   dia_nombre: string;
   bloque_nombre: string;
-  trayecto_uc_id: number;
-  dia_id: number;
-  bloque_id: number;
-  aula_id: number;
-  profesor_id: number;
-  trayecto_id: number;
   color?: string;
   activo: boolean;
+  // Campos opcionales para compatibilidad
+  trayecto_uc_id?: number;
+  dia_id?: number;
+  bloque_id?: number;
+  aula_id?: number;
+  profesor_id?: number;
+  trayecto_id?: number;
 }
 
 interface HorarioTableProps {
@@ -72,7 +73,15 @@ const HorarioTable = ({
   const isReadOnlyUser = userRoles.includes('usuario asignado') && !hasPermission('gestion_horarios');
 
   useEffect(() => {
-  }, [horarios, profesores, diasSemana, bloquesHorarios]);
+    console.log('Horarios recibidos:', horarios);
+    console.log('Profesores:', profesores);
+    console.log('Días semana:', diasSemana);
+    console.log('Bloques horarios:', bloquesHorarios);
+    console.log('Tab actual:', tabValue);
+    if (profesores[tabValue]) {
+      console.log('Profesor actual:', profesores[tabValue]);
+    }
+  }, [horarios, profesores, diasSemana, bloquesHorarios, tabValue]);
 
   const defaultColors = [
     '#1976d2',
@@ -92,15 +101,35 @@ const HorarioTable = ({
   const getHorarioForCell = (diaNombre: string, bloqueNombre: string): Horario | null => {
     const profesorActual = profesores[tabValue];
     if (!profesorActual) {
+      console.log('No hay profesor actual seleccionado');
       return null;
     }
 
-    const horario = horarios.find(h =>
-      h.profesor_id === profesorActual.profesor_id &&
-      h.dia_nombre === diaNombre &&
-      h.bloque_nombre === bloqueNombre &&
-      h.activo
-    );
+    console.log(`Buscando horario para: ${profesorActual.nombre} ${profesorActual.apellido}, ${diaNombre}, ${bloqueNombre}`);
+    
+    const profesorNombreCompleto = `${profesorActual.nombre} ${profesorActual.apellido}`;
+    
+    const horario = horarios.find(h => {
+      const coincideProfesor = h.profesor_nombre === profesorNombreCompleto;
+      const coincideDia = h.dia_nombre === diaNombre;
+      const coincideBloque = h.bloque_nombre === bloqueNombre;
+      const estaActivo = h.activo;
+      
+      console.log(`Comparando horario ${h.horario_id}:`, {
+        profesor: `${h.profesor_nombre} === ${profesorNombreCompleto} = ${coincideProfesor}`,
+        dia: `${h.dia_nombre} === ${diaNombre} = ${coincideDia}`,
+        bloque: `${h.bloque_nombre} === ${bloqueNombre} = ${coincideBloque}`,
+        activo: estaActivo
+      });
+      
+      return coincideProfesor && coincideDia && coincideBloque && estaActivo;
+    });
+
+    if (horario) {
+      console.log('Horario encontrado:', horario);
+    } else {
+      console.log('No se encontró horario para esta celda');
+    }
 
     return horario || null;
   };
