@@ -109,6 +109,7 @@ const DisponibilidadAulasPage = () => {
           api.get('/api/bloques-horarios/todos')
         ]);
         
+        console.log('Disponibilidades cargadas:', disponibilidadesRes.data);
         setDisponibilidades(disponibilidadesRes.data);
         setAulas(aulasRes.data);
         setDias(diasRes.data);
@@ -132,6 +133,7 @@ const DisponibilidadAulasPage = () => {
 
   // Manejar apertura del formulario para editar
   const handleEdit = (disponibilidad: DisponibilidadAula) => {
+    console.log('Editando disponibilidad:', disponibilidad);
     setCurrentDisponibilidad(disponibilidad);
     setOpenDialog(true);
   };
@@ -139,6 +141,7 @@ const DisponibilidadAulasPage = () => {
   // Manejar eliminación
   const handleDelete = async (disponibilidad: DisponibilidadAula) => {
     try {
+      console.log('Eliminando disponibilidad con ID:', disponibilidad.disponibilidad_aula_id);
       await api.delete(`/api/disponibilidad-aulas/eliminar/${disponibilidad.disponibilidad_aula_id}`);
       setDisponibilidades(disponibilidades.filter(d => d.disponibilidad_aula_id !== disponibilidad.disponibilidad_aula_id));
       showSnackbar('Disponibilidad eliminada exitosamente', 'success');
@@ -146,6 +149,12 @@ const DisponibilidadAulasPage = () => {
       console.error('Error deleting disponibilidad:', error);
       showSnackbar('Error al eliminar disponibilidad', 'error');
     }
+  };
+
+  // Función para obtener IDs a partir de nombres
+  const getIdFromName = (name: string, array: any[], nameField: string, idField: string): number | null => {
+    const item = array.find(item => item[nameField] === name);
+    return item ? item[idField] : null;
   };
 
   // Manejar envío del formulario (agregar o editar)
@@ -158,12 +167,18 @@ const DisponibilidadAulasPage = () => {
         bloque_id: Number(values.bloque_id),
       };
 
+      console.log('Enviando datos:', formattedValues);
+
       if (currentDisponibilidad) {
         // Actualizar disponibilidad existente
-        await api.put('/api/disponibilidad-aulas/actualizar', {
+        const updateData = {
           ...formattedValues,
           disponibilidad_aula_id: currentDisponibilidad.disponibilidad_aula_id
-        });
+        };
+        
+        console.log('Actualizando con datos:', updateData);
+        await api.put('/api/disponibilidad-aulas/actualizar', updateData);
+        
         // Recargar la lista
         const response = await api.get('/api/disponibilidad-aulas/vista');
         setDisponibilidades(response.data);
@@ -171,6 +186,7 @@ const DisponibilidadAulasPage = () => {
       } else {
         // Crear nueva disponibilidad
         await api.post('/api/disponibilidad-aulas/registro', formattedValues);
+        
         // Recargar la lista
         const response = await api.get('/api/disponibilidad-aulas/vista');
         setDisponibilidades(response.data);
@@ -246,9 +262,12 @@ const DisponibilidadAulasPage = () => {
             title=""
             fields={formFields}
             initialValues={currentDisponibilidad ? {
-              aula_id: currentDisponibilidad.aula_id?.toString() || '',
-              dia_id: currentDisponibilidad.dia_id?.toString() || '',
-              bloque_id: currentDisponibilidad.bloque_id?.toString() || '',
+              aula_id: currentDisponibilidad.aula_id?.toString() || 
+                       getIdFromName(currentDisponibilidad.aula_nombre, aulas, 'codigo_aula', 'aula_id')?.toString() || '',
+              dia_id: currentDisponibilidad.dia_id?.toString() || 
+                      getIdFromName(currentDisponibilidad.dia_nombre, dias, 'nombre_dia', 'dia_id')?.toString() || '',
+              bloque_id: currentDisponibilidad.bloque_id?.toString() || 
+                         getIdFromName(currentDisponibilidad.bloque_nombre, bloques, 'nombre_bloque', 'bloque_id')?.toString() || '',
             } : initialValues}
             onSubmit={handleSubmit}
             onCancel={() => setOpenDialog(false)}

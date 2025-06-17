@@ -142,9 +142,11 @@ const HorariosPage = () => {
     ) || null;
   };
 
-  // Función para eliminar aula de disponibilidad
+  // Función para eliminar aula de disponibilidad usando disponibilidad_aula_id
   const removeAulaFromDisponibilidad = async (aulaId: number, diaId: number, bloqueId: number) => {
     try {
+      console.log('Eliminando disponibilidad para:', { aulaId, diaId, bloqueId });
+      
       // Buscar la disponibilidad específica
       const disponibilidadResponse = await api.get('/api/disponibilidad-aulas/vista');
       const disponibilidades = disponibilidadResponse.data;
@@ -154,19 +156,39 @@ const HorariosPage = () => {
       const aula = aulas.find(a => a.aula_id === aulaId);
       
       if (!dia || !bloque || !aula) {
-        console.error('No se encontraron datos para eliminar disponibilidad');
+        console.error('No se encontraron datos para eliminar disponibilidad:', { dia, bloque, aula });
         return;
       }
 
-      const disponibilidad = disponibilidades.find((disp: any) => 
-        disp.dia_nombre === dia.nombre_dia && 
-        disp.bloque_nombre === bloque.nombre_bloque && 
-        (disp.aula_nombre === aula.codigo_aula || disp.aula_nombre === aula.aula_id.toString())
-      );
+      console.log('Buscando disponibilidad con:', {
+        dia_nombre: dia.nombre_dia,
+        bloque_nombre: bloque.nombre_bloque,
+        aula_codigo: aula.codigo_aula
+      });
 
-      if (disponibilidad) {
+      const disponibilidad = disponibilidades.find((disp: any) => {
+        const coincideDia = disp.dia_nombre === dia.nombre_dia;
+        const coincideBloque = disp.bloque_nombre === bloque.nombre_bloque;
+        const coincideAula = disp.aula_nombre === aula.codigo_aula || disp.aula_nombre === aula.aula_id.toString();
+        
+        console.log('Comparando disponibilidad:', {
+          disp_dia: disp.dia_nombre,
+          disp_bloque: disp.bloque_nombre,
+          disp_aula: disp.aula_nombre,
+          coincideDia,
+          coincideBloque,
+          coincideAula
+        });
+        
+        return coincideDia && coincideBloque && coincideAula;
+      });
+
+      if (disponibilidad && disponibilidad.disponibilidad_aula_id) {
+        console.log('Eliminando disponibilidad con ID:', disponibilidad.disponibilidad_aula_id);
         await api.delete(`/api/disponibilidad-aulas/eliminar/${disponibilidad.disponibilidad_aula_id}`);
         console.log('Disponibilidad de aula eliminada exitosamente');
+      } else {
+        console.warn('No se encontró la disponibilidad específica para eliminar:', disponibilidad);
       }
     } catch (error) {
       console.error('Error eliminando disponibilidad de aula:', error);
@@ -176,12 +198,15 @@ const HorariosPage = () => {
   // Función para agregar aula a disponibilidad
   const addAulaToDisponibilidad = async (aulaId: number, diaId: number, bloqueId: number) => {
     try {
+      console.log('Agregando aula a disponibilidad:', { aulaId, diaId, bloqueId });
+      
       const disponibilidadData = {
         aula_id: aulaId,
         dia_id: diaId,
         bloque_id: bloqueId,
       };
 
+      console.log('Enviando datos de disponibilidad:', disponibilidadData);
       await api.post('/api/disponibilidad-aulas/registro', disponibilidadData);
       console.log('Aula agregada a disponibilidad exitosamente');
     } catch (error) {
@@ -201,6 +226,8 @@ const HorariosPage = () => {
         bloque_id: selectedCell.bloque,
         profesor_id: profesores[tabValue]?.profesor_id,
       };
+
+      console.log('Creando horario con datos:', horarioData);
 
       // Crear el horario
       await api.post('/api/horarios/registro', horarioData);
@@ -237,8 +264,12 @@ const HorariosPage = () => {
       const aulaAnterior = currentHorario.aula_id;
       const aulaNueva = values.aula_id;
 
+      console.log('Actualizando horario:', { aulaAnterior, aulaNueva, currentHorario });
+
       // Si cambió el aula, manejar disponibilidad
       if (aulaAnterior !== aulaNueva) {
+        console.log('Cambió el aula, actualizando disponibilidades...');
+        
         // Agregar el aula anterior a disponibilidad
         await addAulaToDisponibilidad(aulaAnterior, currentHorario.dia_id, currentHorario.bloque_id);
         
@@ -276,10 +307,12 @@ const HorariosPage = () => {
   // Eliminar horario
   const handleDeleteHorario = async (horario: Horario) => {
     try {
+      console.log('Eliminando horario:', horario);
+
       // Eliminar el horario
       await api.delete(`/api/horarios/eliminar/${horario.horario_id}`);
 
-      // Agregar el aula de vuelta a disponibilidad
+      // Agregar el aula de vuelta a disponibilidad con los datos correctos
       await addAulaToDisponibilidad(horario.aula_id, horario.dia_id, horario.bloque_id);
 
       // Recargar horarios
