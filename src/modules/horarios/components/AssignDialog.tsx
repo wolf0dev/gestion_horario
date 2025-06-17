@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -127,9 +127,20 @@ const AssignDialog = ({
   onSubmit,
 }: AssignDialogProps) => {
   const theme = useTheme();
+  const [filteredTrayectosUC, setFilteredTrayectosUC] = useState<any[]>([]);
+  const [selectedTrayecto, setSelectedTrayecto] = useState<string>('');
 
   useEffect(() => {
-  }, [trayectos, trayectosUC, tabValue]);
+    // Filtrar las unidades curriculares según el trayecto seleccionado
+    if (selectedTrayecto) {
+      const filtered = trayectosUC.filter(tuc => 
+        tuc.trayecto_id?.toString() === selectedTrayecto
+      );
+      setFilteredTrayectosUC(filtered);
+    } else {
+      setFilteredTrayectosUC(trayectosUC);
+    }
+  }, [selectedTrayecto, trayectosUC]);
 
   const initialValues = {
     trayecto_uc_id: '',
@@ -137,35 +148,35 @@ const AssignDialog = ({
     bloque_id: selectedCell?.bloque || '',
     aula_id: '',
     profesor_id: profesores[tabValue]?.profesor_id || '',
-    trayecto_id: '',
     color: '#1976d2',
     activo: true,
   };
 
   const formFields: FormField[] = [
     {
-      name: 'trayecto_id',
-      label: 'Trayecto',
+      name: 'trayecto_filter',
+      label: 'Filtrar por Trayecto (opcional)',
       type: 'select',
-      required: true,
-      options: trayectos.map(trayecto => ({
-        label: trayecto.nombre,
-        value: trayecto.trayecto_id
-      })),
+      required: false,
+      options: [
+        { label: 'Todos los trayectos', value: '' },
+        ...trayectos.map(trayecto => ({
+          label: trayecto.nombre,
+          value: trayecto.trayecto_id?.toString() || ''
+        }))
+      ],
       xs: 12,
-      sm: 6,
     },
     {
       name: 'trayecto_uc_id',
       label: 'Unidad Curricular',
       type: 'select',
       required: true,
-      options: trayectosUC.map(tuc => ({
-        label: `${tuc.uc_codigo || ''} - ${tuc.uc_nombre}`,
-        value: tuc.trayecto_uc_id
+      options: filteredTrayectosUC.map(tuc => ({
+        label: `${tuc.trayecto_nombre || ''} - ${tuc.uc_codigo || ''} - ${tuc.uc_nombre || ''}`,
+        value: tuc.trayecto_uc_id?.toString() || ''
       })),
       xs: 12,
-      sm: 6,
     },
     {
       name: 'aula_id',
@@ -174,22 +185,25 @@ const AssignDialog = ({
       required: true,
       options: aulas.map(aula => ({
         label: `${aula.codigo_aula} - ${aula.tipo_aula} (Cap: ${aula.capacidad})`,
-        value: aula.aula_id
+        value: aula.aula_id?.toString() || ''
       })),
       xs: 12,
     },
   ];
 
   const handleSubmit = (values: any) => {
+    // Solo enviar los campos requeridos según el JSON de ejemplo
     const formattedValues = {
-      ...values,
       trayecto_uc_id: Number(values.trayecto_uc_id),
       dia_id: selectedCell?.dia || Number(values.dia_id),
       bloque_id: selectedCell?.bloque || Number(values.bloque_id),
       aula_id: Number(values.aula_id),
       profesor_id: profesores[tabValue]?.profesor_id || Number(values.profesor_id),
-      trayecto_id: Number(values.trayecto_id),
+      color: values.color,
+      activo: values.activo,
     };
+    
+    console.log('Enviando datos de horario:', formattedValues);
     onSubmit(formattedValues);
   };
 
@@ -255,6 +269,44 @@ const AssignDialog = ({
           onCancel={onClose}
           submitButtonText="Asignar Clase"
           customFields={{
+            trayecto_filter: (field: any, formikProps: any) => (
+              <Field name="trayecto_filter">
+                {({ field: formikField, meta }: any) => (
+                  <FormControl 
+                    fullWidth 
+                    margin="normal" 
+                    error={meta.touched && meta.error ? true : false}
+                  >
+                    <InputLabel id="trayecto-filter-label">
+                      Filtrar por Trayecto (opcional)
+                    </InputLabel>
+                    <Select
+                      {...formikField}
+                      labelId="trayecto-filter-label"
+                      label="Filtrar por Trayecto (opcional)"
+                      onChange={(e) => {
+                        formikField.onChange(e);
+                        setSelectedTrayecto(e.target.value as string);
+                        // Limpiar la selección de UC cuando cambia el filtro
+                        formikProps.setFieldValue('trayecto_uc_id', '');
+                      }}
+                    >
+                      <MenuItem value="">
+                        <em>Todos los trayectos</em>
+                      </MenuItem>
+                      {trayectos.map((trayecto) => (
+                        <MenuItem key={trayecto.trayecto_id} value={trayecto.trayecto_id?.toString()}>
+                          {trayecto.nombre}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {meta.touched && meta.error && (
+                      <FormHelperText>{meta.error}</FormHelperText>
+                    )}
+                  </FormControl>
+                )}
+              </Field>
+            ),
             color: (field: any, formikProps: any) => (
               <Field name="color">
                 {({ field: formikField, meta }: any) => (
