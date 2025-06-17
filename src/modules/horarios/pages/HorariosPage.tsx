@@ -174,39 +174,33 @@ const HorariosPage = () => {
     return enrichedHorario;
   };
 
-  // CORREGIDO: Función para eliminar aula de disponibilidad usando disponibilidad_aula_id
+  // CORREGIDO: Función para eliminar disponibilidad de aula usando el ID directo
   const removeAulaFromDisponibilidad = async (aulaId: number, diaId: number, bloqueId: number) => {
     try {
       console.log('Eliminando disponibilidad para:', { aulaId, diaId, bloqueId });
       
-      // Buscar la disponibilidad específica
+      // Buscar la disponibilidad específica usando los IDs directamente
       const disponibilidadResponse = await api.get('/api/disponibilidad-aulas/vista');
       const disponibilidades = disponibilidadResponse.data;
       
-      const dia = diasSemana.find(d => d.dia_id === diaId);
-      const bloque = bloquesHorarios.find(b => b.bloque_id === bloqueId);
-      const aula = aulas.find(a => a.aula_id === aulaId);
-      
-      if (!dia || !bloque || !aula) {
-        console.error('No se encontraron datos para eliminar disponibilidad:', { dia, bloque, aula });
-        return;
-      }
-
-      console.log('Buscando disponibilidad con:', {
-        dia_nombre: dia.nombre_dia,
-        bloque_nombre: bloque.nombre_bloque,
-        aula_codigo: aula.codigo_aula
-      });
-
+      // Buscar la disponibilidad que coincida con los IDs proporcionados
       const disponibilidad = disponibilidades.find((disp: any) => {
-        const coincideDia = disp.dia_nombre === dia.nombre_dia;
-        const coincideBloque = disp.bloque_nombre === bloque.nombre_bloque;
-        const coincideAula = disp.aula_nombre === aula.codigo_aula || disp.aula_nombre === aula.aula_id.toString();
+        // Obtener los IDs de la disponibilidad comparando con nuestros datos
+        const diaDisponibilidad = diasSemana.find(d => d.nombre_dia === disp.dia_nombre);
+        const bloqueDisponibilidad = bloquesHorarios.find(b => b.nombre_bloque === disp.bloque_nombre);
+        const aulaDisponibilidad = aulas.find(a => a.codigo_aula === disp.aula_nombre);
+
+        const coincideDia = diaDisponibilidad?.dia_id === diaId;
+        const coincideBloque = bloqueDisponibilidad?.bloque_id === bloqueId;
+        const coincideAula = aulaDisponibilidad?.aula_id === aulaId;
         
         console.log('Comparando disponibilidad:', {
-          disp_dia: disp.dia_nombre,
-          disp_bloque: disp.bloque_nombre,
-          disp_aula: disp.aula_nombre,
+          disp_dia_id: diaDisponibilidad?.dia_id,
+          disp_bloque_id: bloqueDisponibilidad?.bloque_id,
+          disp_aula_id: aulaDisponibilidad?.aula_id,
+          target_dia_id: diaId,
+          target_bloque_id: bloqueId,
+          target_aula_id: aulaId,
           coincideDia,
           coincideBloque,
           coincideAula
@@ -218,14 +212,16 @@ const HorariosPage = () => {
       if (disponibilidad && disponibilidad.disponibilidad_aula_id) {
         console.log('Eliminando disponibilidad con ID:', disponibilidad.disponibilidad_aula_id);
         
-        // CORREGIDO: Usar el ID correcto en la ruta
+        // Usar el endpoint correcto con el ID de disponibilidad
         await api.delete(`/api/disponibilidad-aulas/eliminar/${disponibilidad.disponibilidad_aula_id}`);
         console.log('Disponibilidad de aula eliminada exitosamente');
       } else {
-        console.warn('No se encontró la disponibilidad específica para eliminar:', disponibilidad);
+        console.warn('No se encontró la disponibilidad específica para eliminar');
+        // No lanzar error, solo advertir, ya que el horario se creó correctamente
       }
     } catch (error) {
       console.error('Error eliminando disponibilidad de aula:', error);
+      // No lanzar error para no interrumpir el flujo principal
     }
   };
 
@@ -274,10 +270,11 @@ const HorariosPage = () => {
 
       console.log('Creando horario con datos:', horarioData);
 
-      // Crear el horario
+      // Crear el horario primero
       await api.post('/api/horarios/registro', horarioData);
+      console.log('Horario creado exitosamente');
 
-      // CORREGIDO: Eliminar el aula de disponibilidad usando el ID correcto
+      // Eliminar el aula de disponibilidad usando los IDs directos
       await removeAulaFromDisponibilidad(values.aula_id, selectedCell.dia, selectedCell.bloque);
 
       // Recargar horarios
