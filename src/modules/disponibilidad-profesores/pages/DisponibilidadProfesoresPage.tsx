@@ -22,6 +22,7 @@ interface DisponibilidadProfesor {
   profesor_nombre: string;
   dia_nombre: string;
   bloque_nombre: string;
+  disponible: boolean;
   profesor_id?: number;
   dia_id?: number;
   bloque_id?: number;
@@ -56,6 +57,13 @@ const DisponibilidadProfesoresPage = () => {
     { id: 'profesor_nombre', label: 'Profesor', minWidth: 200, sortable: true },
     { id: 'dia_nombre', label: 'Día', minWidth: 120, sortable: true },
     { id: 'bloque_nombre', label: 'Bloque Horario', minWidth: 150, sortable: true },
+    { 
+      id: 'disponible', 
+      label: 'Activo', 
+      minWidth: 100, 
+      sortable: true,
+      format: (value: boolean) => value ? 'Sí' : 'No'
+    },
   ];
 
   // Definición de campos para el formulario
@@ -219,7 +227,8 @@ const DisponibilidadProfesoresPage = () => {
       <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
         <Typography variant="body1" gutterBottom>
           Administre la disponibilidad horaria de los profesores. Defina en qué días y bloques
-          horarios cada profesor está disponible para dictar clases.
+          horarios cada profesor está disponible para dictar clases. El campo "Activo" indica
+          si la disponibilidad está actualmente disponible (Sí) o ya fue asignada a un horario (No).
         </Typography>
       </Paper>
 

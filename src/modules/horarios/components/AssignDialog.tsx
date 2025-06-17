@@ -134,6 +134,60 @@ const AssignDialog = ({
   const [availableAulas, setAvailableAulas] = useState<any[]>([]);
   const [loadingAulas, setLoadingAulas] = useState(false);
   const [aulaError, setAulaError] = useState<string>('');
+  const [profesorDisponible, setProfesorDisponible] = useState<boolean>(true);
+  const [loadingProfesor, setLoadingProfesor] = useState(false);
+  const [profesorError, setProfesorError] = useState<string>('');
+
+  // Verificar disponibilidad del profesor cuando se abre el diálogo
+  useEffect(() => {
+    const checkProfesorAvailability = async () => {
+      if (!selectedCell || !profesores[tabValue]) return;
+
+      setLoadingProfesor(true);
+      setProfesorError('');
+      
+      try {
+        const profesorActual = profesores[tabValue];
+        const diaSeleccionado = diasSemana.find(d => d.dia_id === selectedCell.dia);
+        const bloqueSeleccionado = bloquesHorarios.find(b => b.bloque_id === selectedCell.bloque);
+
+        if (!diaSeleccionado || !bloqueSeleccionado) {
+          setProfesorError('Error al verificar disponibilidad del profesor.');
+          setProfesorDisponible(false);
+          return;
+        }
+
+        // Obtener disponibilidad de profesores
+        const response = await api.get('/api/disponibilidad-profesores/vista');
+        const disponibilidades = response.data;
+
+        // Buscar si el profesor está disponible para este día y bloque
+        const profesorNombreCompleto = `${profesorActual.nombre} ${profesorActual.apellido}`;
+        const disponibilidad = disponibilidades.find((disp: any) => {
+          return disp.profesor_nombre === profesorNombreCompleto &&
+                 disp.dia_nombre === diaSeleccionado.nombre_dia &&
+                 disp.bloque_nombre === bloqueSeleccionado.nombre_bloque;
+        });
+
+        if (!disponibilidad) {
+          setProfesorError(`El profesor ${profesorNombreCompleto} no está disponible para ${diaSeleccionado.nombre_dia} en el bloque ${bloqueSeleccionado.nombre_bloque}.`);
+          setProfesorDisponible(false);
+        } else {
+          setProfesorDisponible(true);
+        }
+      } catch (error) {
+        console.error('Error checking profesor availability:', error);
+        setProfesorError('Error al verificar disponibilidad del profesor.');
+        setProfesorDisponible(false);
+      } finally {
+        setLoadingProfesor(false);
+      }
+    };
+
+    if (open && selectedCell && profesores[tabValue]) {
+      checkProfesorAvailability();
+    }
+  }, [selectedCell, open, profesores, tabValue, diasSemana, bloquesHorarios]);
 
   // Cargar aulas disponibles cuando se selecciona día y bloque
   useEffect(() => {
@@ -227,6 +281,7 @@ const AssignDialog = ({
         value: tuc.trayecto_uc_id?.toString() || ''
       })),
       xs: 12,
+      disabled: !profesorDisponible,
     },
     {
       name: 'aula_id',
@@ -238,12 +293,16 @@ const AssignDialog = ({
         value: aula.aula_id?.toString() || ''
       })),
       xs: 12,
-      disabled: loadingAulas || availableAulas.length === 0,
+      disabled: loadingAulas || availableAulas.length === 0 || !profesorDisponible,
     },
   ];
 
   const handleSubmit = async (values: any) => {
     try {
+      if (!profesorDisponible) {
+        return;
+      }
+
       // Solo enviar los campos requeridos según el JSON de ejemplo
       const formattedValues = {
         trayecto_uc_id: Number(values.trayecto_uc_id),
@@ -318,6 +377,19 @@ const AssignDialog = ({
           </Paper>
         )}
 
+        {/* Alertas de disponibilidad */}
+        {loadingProfesor && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Verificando disponibilidad del profesor...
+          </Alert>
+        )}
+
+        {profesorError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {profesorError}
+          </Alert>
+        )}
+
         {aulaError && (
           <Alert severity="warning" sx={{ mb: 2 }}>
             {aulaError}
@@ -327,6 +399,12 @@ const AssignDialog = ({
         {loadingAulas && (
           <Alert severity="info" sx={{ mb: 2 }}>
             Cargando aulas disponibles...
+          </Alert>
+        )}
+
+        {profesorDisponible && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            ✅ Profesor disponible para este horario
           </Alert>
         )}
 
@@ -345,6 +423,7 @@ const AssignDialog = ({
                     fullWidth 
                     margin="normal" 
                     error={meta.touched && meta.error ? true : false}
+                    disabled={!profesorDisponible}
                   >
                     <InputLabel id="trayecto-filter-label">
                       Filtrar por Trayecto (opcional)
