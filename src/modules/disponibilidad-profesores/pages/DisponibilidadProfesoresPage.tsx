@@ -136,16 +136,26 @@ const DisponibilidadProfesoresPage = () => {
     setOpenDialog(true);
   };
 
-  // Manejar eliminación
+  // Manejar eliminación - CORREGIDO: usar disponibilidad_profesor_id
   const handleDelete = async (disponibilidad: DisponibilidadProfesor) => {
     try {
+      console.log('Eliminando disponibilidad con ID:', disponibilidad.disponibilidad_profesor_id);
+      
+      // CORREGIDO: Usar el ID correcto en la ruta
       await api.delete(`/api/disponibilidad-profesores/eliminar/${disponibilidad.disponibilidad_profesor_id}`);
+      
       setDisponibilidades(disponibilidades.filter(d => d.disponibilidad_profesor_id !== disponibilidad.disponibilidad_profesor_id));
       showSnackbar('Disponibilidad eliminada exitosamente', 'success');
     } catch (error) {
       console.error('Error deleting disponibilidad:', error);
       showSnackbar('Error al eliminar disponibilidad', 'error');
     }
+  };
+
+  // Función para obtener IDs a partir de nombres
+  const getIdFromName = (name: string, array: any[], nameField: string, idField: string): number | null => {
+    const item = array.find(item => item[nameField] === name);
+    return item ? item[idField] : null;
   };
 
   // Manejar envío del formulario (agregar o editar)
@@ -159,11 +169,15 @@ const DisponibilidadProfesoresPage = () => {
       };
 
       if (currentDisponibilidad) {
-        // Actualizar disponibilidad existente
-        await api.put('/api/disponibilidad-profesores/actualizar', {
+        // CORREGIDO: Actualizar disponibilidad existente usando el ID correcto
+        const updateData = {
           ...formattedValues,
           disponibilidad_profesor_id: currentDisponibilidad.disponibilidad_profesor_id
-        });
+        };
+        
+        console.log('Actualizando disponibilidad profesor con datos:', updateData);
+        await api.put('/api/disponibilidad-profesores/actualizar', updateData);
+        
         // Recargar la lista
         const response = await api.get('/api/disponibilidad-profesores/vista');
         setDisponibilidades(response.data);
@@ -246,9 +260,12 @@ const DisponibilidadProfesoresPage = () => {
             title=""
             fields={formFields}
             initialValues={currentDisponibilidad ? {
-              profesor_id: currentDisponibilidad.profesor_id?.toString() || '',
-              dia_id: currentDisponibilidad.dia_id?.toString() || '',
-              bloque_id: currentDisponibilidad.bloque_id?.toString() || '',
+              profesor_id: currentDisponibilidad.profesor_id?.toString() || 
+                          getIdFromName(currentDisponibilidad.profesor_nombre, profesores, 'nombre', 'profesor_id')?.toString() || '',
+              dia_id: currentDisponibilidad.dia_id?.toString() || 
+                      getIdFromName(currentDisponibilidad.dia_nombre, dias, 'nombre_dia', 'dia_id')?.toString() || '',
+              bloque_id: currentDisponibilidad.bloque_id?.toString() || 
+                         getIdFromName(currentDisponibilidad.bloque_nombre, bloques, 'nombre_bloque', 'bloque_id')?.toString() || '',
             } : initialValues}
             onSubmit={handleSubmit}
             onCancel={() => setOpenDialog(false)}

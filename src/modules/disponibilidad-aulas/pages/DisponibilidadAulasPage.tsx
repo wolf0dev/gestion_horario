@@ -138,11 +138,14 @@ const DisponibilidadAulasPage = () => {
     setOpenDialog(true);
   };
 
-  // Manejar eliminación
+  // Manejar eliminación - CORREGIDO: usar disponibilidad_aula_id
   const handleDelete = async (disponibilidad: DisponibilidadAula) => {
     try {
       console.log('Eliminando disponibilidad con ID:', disponibilidad.disponibilidad_aula_id);
+      
+      // CORREGIDO: Usar el ID correcto en la ruta
       await api.delete(`/api/disponibilidad-aulas/eliminar/${disponibilidad.disponibilidad_aula_id}`);
+      
       setDisponibilidades(disponibilidades.filter(d => d.disponibilidad_aula_id !== disponibilidad.disponibilidad_aula_id));
       showSnackbar('Disponibilidad eliminada exitosamente', 'success');
     } catch (error) {
@@ -170,7 +173,7 @@ const DisponibilidadAulasPage = () => {
       console.log('Enviando datos:', formattedValues);
 
       if (currentDisponibilidad) {
-        // Actualizar disponibilidad existente
+        // CORREGIDO: Actualizar disponibilidad existente usando el ID correcto
         const updateData = {
           ...formattedValues,
           disponibilidad_aula_id: currentDisponibilidad.disponibilidad_aula_id

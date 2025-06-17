@@ -174,7 +174,7 @@ const HorariosPage = () => {
     return enrichedHorario;
   };
 
-  // Función para eliminar aula de disponibilidad usando disponibilidad_aula_id
+  // CORREGIDO: Función para eliminar aula de disponibilidad usando disponibilidad_aula_id
   const removeAulaFromDisponibilidad = async (aulaId: number, diaId: number, bloqueId: number) => {
     try {
       console.log('Eliminando disponibilidad para:', { aulaId, diaId, bloqueId });
@@ -217,6 +217,8 @@ const HorariosPage = () => {
 
       if (disponibilidad && disponibilidad.disponibilidad_aula_id) {
         console.log('Eliminando disponibilidad con ID:', disponibilidad.disponibilidad_aula_id);
+        
+        // CORREGIDO: Usar el ID correcto en la ruta
         await api.delete(`/api/disponibilidad-aulas/eliminar/${disponibilidad.disponibilidad_aula_id}`);
         console.log('Disponibilidad de aula eliminada exitosamente');
       } else {
@@ -258,7 +260,7 @@ const HorariosPage = () => {
     }
   };
 
-  // Asignar horario
+  // CORREGIDO: Asignar horario y eliminar disponibilidad
   const handleAssignHorario = async (values: HorarioForm) => {
     try {
       if (!selectedCell) return;
@@ -275,7 +277,7 @@ const HorariosPage = () => {
       // Crear el horario
       await api.post('/api/horarios/registro', horarioData);
 
-      // Eliminar el aula de disponibilidad
+      // CORREGIDO: Eliminar el aula de disponibilidad usando el ID correcto
       await removeAulaFromDisponibilidad(values.aula_id, selectedCell.dia, selectedCell.bloque);
 
       // Recargar horarios
@@ -347,7 +349,7 @@ const HorariosPage = () => {
     }
   };
 
-  // Eliminar horario
+  // CORREGIDO: Eliminar horario y restaurar disponibilidad
   const handleDeleteHorario = async (horario: Horario) => {
     try {
       console.log('Horario original recibido:', horario);
