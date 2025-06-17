@@ -174,53 +174,84 @@ const HorariosPage = () => {
     return enrichedHorario;
   };
 
-  // CORREGIDO: Función para eliminar disponibilidad de aula usando el ID directo
+  // CORREGIDO: Función para eliminar disponibilidad de aula - versión simplificada y depurada
   const removeAulaFromDisponibilidad = async (aulaId: number, diaId: number, bloqueId: number) => {
     try {
-      console.log('Eliminando disponibilidad para:', { aulaId, diaId, bloqueId });
+      console.log('=== INICIANDO ELIMINACIÓN DE DISPONIBILIDAD ===');
+      console.log('Parámetros recibidos:', { aulaId, diaId, bloqueId });
       
-      // Buscar la disponibilidad específica usando los IDs directamente
+      // Verificar que los parámetros sean válidos
+      if (!aulaId || !diaId || !bloqueId) {
+        console.error('Parámetros inválidos:', { aulaId, diaId, bloqueId });
+        return;
+      }
+
+      // Obtener todas las disponibilidades
+      console.log('Obteniendo disponibilidades...');
       const disponibilidadResponse = await api.get('/api/disponibilidad-aulas/vista');
       const disponibilidades = disponibilidadResponse.data;
-      
-      // Buscar la disponibilidad que coincida con los IDs proporcionados
-      const disponibilidad = disponibilidades.find((disp: any) => {
-        // Obtener los IDs de la disponibilidad comparando con nuestros datos
-        const diaDisponibilidad = diasSemana.find(d => d.nombre_dia === disp.dia_nombre);
-        const bloqueDisponibilidad = bloquesHorarios.find(b => b.nombre_bloque === disp.bloque_nombre);
-        const aulaDisponibilidad = aulas.find(a => a.codigo_aula === disp.aula_nombre);
+      console.log('Disponibilidades obtenidas:', disponibilidades.length);
 
-        const coincideDia = diaDisponibilidad?.dia_id === diaId;
-        const coincideBloque = bloqueDisponibilidad?.bloque_id === bloqueId;
-        const coincideAula = aulaDisponibilidad?.aula_id === aulaId;
+      // Buscar los datos correspondientes a los IDs
+      const aulaEncontrada = aulas.find(a => a.aula_id === aulaId);
+      const diaEncontrado = diasSemana.find(d => d.dia_id === diaId);
+      const bloqueEncontrado = bloquesHorarios.find(b => b.bloque_id === bloqueId);
+
+      console.log('Datos encontrados:', {
+        aula: aulaEncontrada,
+        dia: diaEncontrado,
+        bloque: bloqueEncontrado
+      });
+
+      if (!aulaEncontrada || !diaEncontrado || !bloqueEncontrado) {
+        console.error('No se encontraron todos los datos necesarios');
+        return;
+      }
+
+      // Buscar la disponibilidad específica
+      console.log('Buscando disponibilidad que coincida con:');
+      console.log('- Aula:', aulaEncontrada.codigo_aula);
+      console.log('- Día:', diaEncontrado.nombre_dia);
+      console.log('- Bloque:', bloqueEncontrado.nombre_bloque);
+
+      const disponibilidad = disponibilidades.find((disp: any) => {
+        const coincideAula = disp.aula_nombre === aulaEncontrada.codigo_aula;
+        const coincideDia = disp.dia_nombre === diaEncontrado.nombre_dia;
+        const coincideBloque = disp.bloque_nombre === bloqueEncontrado.nombre_bloque;
         
-        console.log('Comparando disponibilidad:', {
-          disp_dia_id: diaDisponibilidad?.dia_id,
-          disp_bloque_id: bloqueDisponibilidad?.bloque_id,
-          disp_aula_id: aulaDisponibilidad?.aula_id,
-          target_dia_id: diaId,
-          target_bloque_id: bloqueId,
-          target_aula_id: aulaId,
+        console.log(`Comparando disponibilidad ${disp.disponibilidad_aula_id}:`, {
+          aula_disp: disp.aula_nombre,
+          dia_disp: disp.dia_nombre,
+          bloque_disp: disp.bloque_nombre,
+          coincideAula,
           coincideDia,
           coincideBloque,
-          coincideAula
+          coincideTodo: coincideAula && coincideDia && coincideBloque
         });
         
-        return coincideDia && coincideBloque && coincideAula;
+        return coincideAula && coincideDia && coincideBloque;
       });
 
       if (disponibilidad && disponibilidad.disponibilidad_aula_id) {
-        console.log('Eliminando disponibilidad con ID:', disponibilidad.disponibilidad_aula_id);
+        console.log('✅ Disponibilidad encontrada:', {
+          id: disponibilidad.disponibilidad_aula_id,
+          aula: disponibilidad.aula_nombre,
+          dia: disponibilidad.dia_nombre,
+          bloque: disponibilidad.bloque_nombre
+        });
         
-        // Usar el endpoint correcto con el ID de disponibilidad
+        console.log('Eliminando disponibilidad...');
         await api.delete(`/api/disponibilidad-aulas/eliminar/${disponibilidad.disponibilidad_aula_id}`);
-        console.log('Disponibilidad de aula eliminada exitosamente');
+        console.log('✅ Disponibilidad eliminada exitosamente');
       } else {
-        console.warn('No se encontró la disponibilidad específica para eliminar');
-        // No lanzar error, solo advertir, ya que el horario se creó correctamente
+        console.warn('❌ No se encontró la disponibilidad específica');
+        console.log('Disponibilidades disponibles:');
+        disponibilidades.forEach((disp: any, index: number) => {
+          console.log(`${index + 1}. ID: ${disp.disponibilidad_aula_id}, Aula: ${disp.aula_nombre}, Día: ${disp.dia_nombre}, Bloque: ${disp.bloque_nombre}`);
+        });
       }
     } catch (error) {
-      console.error('Error eliminando disponibilidad de aula:', error);
+      console.error('❌ Error eliminando disponibilidad de aula:', error);
       // No lanzar error para no interrumpir el flujo principal
     }
   };
@@ -268,24 +299,30 @@ const HorariosPage = () => {
         profesor_id: profesores[tabValue]?.profesor_id,
       };
 
-      console.log('Creando horario con datos:', horarioData);
+      console.log('=== INICIANDO PROCESO DE ASIGNACIÓN DE HORARIO ===');
+      console.log('Datos del horario a crear:', horarioData);
 
-      // Crear el horario primero
+      // 1. Crear el horario primero
+      console.log('Paso 1: Creando horario...');
       await api.post('/api/horarios/registro', horarioData);
-      console.log('Horario creado exitosamente');
+      console.log('✅ Horario creado exitosamente');
 
-      // Eliminar el aula de disponibilidad usando los IDs directos
+      // 2. Eliminar el aula de disponibilidad usando los IDs directos
+      console.log('Paso 2: Eliminando disponibilidad de aula...');
       await removeAulaFromDisponibilidad(values.aula_id, selectedCell.dia, selectedCell.bloque);
 
-      // Recargar horarios
+      // 3. Recargar horarios
+      console.log('Paso 3: Recargando horarios...');
       const response = await api.get('/api/horarios/vista');
       setHorarios(response.data);
+      console.log('✅ Horarios recargados');
 
       setOpenAssignDialog(false);
       setSelectedCell(null);
       showSnackbar('Horario asignado exitosamente', 'success');
+      console.log('=== PROCESO COMPLETADO EXITOSAMENTE ===');
     } catch (error: any) {
-      console.error('Error assigning horario:', error);
+      console.error('❌ Error en el proceso de asignación:', error);
       
       // Manejar error 409 específicamente
       if (error?.response?.status === 409) {
