@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requiredPermissions?: string[];
   requiredRoles?: string[];
+  excludeRoles?: string[]; // Nuevos: roles que NO deben tener acceso
   requireAll?: boolean; // Si true, requiere TODOS los permisos/roles. Si false, requiere AL MENOS UNO
 }
 
@@ -15,9 +16,10 @@ const ProtectedRoute = ({
   children, 
   requiredPermissions = [], 
   requiredRoles = [],
+  excludeRoles = [],
   requireAll = false 
 }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading, hasPermission, hasRole, hasAnyPermission, hasAnyRole } = useAuth();
+  const { isAuthenticated, isLoading, hasPermission, hasRole, hasAnyPermission, hasAnyRole, userRoles } = useAuth();
 
   if (isLoading) {
     return (
@@ -34,6 +36,15 @@ const ProtectedRoute = ({
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Verificar roles excluidos
+  if (excludeRoles.length > 0) {
+    const hasExcludedRole = excludeRoles.some(role => hasRole(role));
+    if (hasExcludedRole) {
+      // Si el usuario tiene un rol excluido, redirigir a horarios
+      return <Navigate to="/horarios" replace />;
+    }
   }
 
   // Verificar permisos si se especificaron

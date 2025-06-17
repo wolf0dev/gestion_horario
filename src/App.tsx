@@ -45,13 +45,33 @@ function App() {
           
           {/* Protected Routes */}
           <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+            {/* Ruta por defecto - redirigir según el rol */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            
+            {/* Dashboard - Solo para usuarios que NO sean "usuario asignado" */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute excludeRoles={['usuario asignado']}>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Perfil - Accesible para todos los usuarios autenticados */}
             <Route path="/perfil" element={<PerfilPage />} />
             
-            {/* Recursos */}
+            {/* Horarios - Accesible para todos los usuarios autenticados */}
+            <Route 
+              path="/horarios" 
+              element={
+                <ProtectedRoute requiredPermissions={['consultar_horarios', 'gestion_horarios']}>
+                  <HorariosPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Recursos - Solo para usuarios con permisos específicos */}
             <Route 
               path="/aulas" 
               element={
@@ -107,16 +127,6 @@ function App() {
               element={
                 <ProtectedRoute requiredPermissions={['gestion_uc', 'gestion_trayectos']}>
                   <TrayectosUCPage />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Horarios */}
-            <Route 
-              path="/horarios" 
-              element={
-                <ProtectedRoute requiredPermissions={['consultar_horarios', 'gestion_horarios']}>
-                  <HorariosPage />
                 </ProtectedRoute>
               } 
             />
