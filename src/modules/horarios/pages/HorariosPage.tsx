@@ -142,38 +142,6 @@ const HorariosPage = () => {
     ) || null;
   };
 
-  // Función para obtener IDs a partir de nombres
-  const getIdFromName = (name: string, array: any[], nameField: string, idField: string): number | null => {
-    const item = array.find(item => item[nameField] === name);
-    return item ? item[idField] : null;
-  };
-
-  // Función para enriquecer horario con IDs faltantes
-  const enrichHorarioWithIds = (horario: Horario): Horario => {
-    const enrichedHorario = { ...horario };
-
-    // Si faltan IDs, buscarlos por nombre
-    if (!enrichedHorario.dia_id && enrichedHorario.dia_nombre) {
-      enrichedHorario.dia_id = getIdFromName(enrichedHorario.dia_nombre, diasSemana, 'nombre_dia', 'dia_id') || 0;
-    }
-
-    if (!enrichedHorario.bloque_id && enrichedHorario.bloque_nombre) {
-      enrichedHorario.bloque_id = getIdFromName(enrichedHorario.bloque_nombre, bloquesHorarios, 'nombre_bloque', 'bloque_id') || 0;
-    }
-
-    if (!enrichedHorario.aula_id && enrichedHorario.aula_nombre) {
-      enrichedHorario.aula_id = getIdFromName(enrichedHorario.aula_nombre, aulas, 'codigo_aula', 'aula_id') || 0;
-    }
-
-    if (!enrichedHorario.profesor_id && enrichedHorario.profesor_nombre) {
-      const nombreCompleto = enrichedHorario.profesor_nombre;
-      const profesor = profesores.find(p => `${p.nombre} ${p.apellido}` === nombreCompleto);
-      enrichedHorario.profesor_id = profesor ? profesor.profesor_id : 0;
-    }
-
-    return enrichedHorario;
-  };
-
   // Función para eliminar aula de disponibilidad usando disponibilidad_aula_id
   const removeAulaFromDisponibilidad = async (aulaId: number, diaId: number, bloqueId: number) => {
     try {
@@ -232,29 +200,18 @@ const HorariosPage = () => {
     try {
       console.log('Agregando aula a disponibilidad:', { aulaId, diaId, bloqueId });
       
-      // Verificar que los parámetros sean válidos
-      if (!aulaId || !diaId || !bloqueId) {
-        console.error('Parámetros inválidos para agregar disponibilidad:', { aulaId, diaId, bloqueId });
-        return;
-      }
-
       const disponibilidadData = {
-        aula_id: Number(aulaId),
-        dia_id: Number(diaId),
-        bloque_id: Number(bloqueId),
+        aula_id: aulaId,
+        dia_id: diaId,
+        bloque_id: bloqueId,
       };
 
       console.log('Enviando datos de disponibilidad:', disponibilidadData);
-      
-      const response = await api.post('/api/disponibilidad-aulas/registro', disponibilidadData);
-      console.log('Respuesta de la API:', response.data);
+      await api.post('/api/disponibilidad-aulas/registro', disponibilidadData);
       console.log('Aula agregada a disponibilidad exitosamente');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error agregando aula a disponibilidad:', error);
-      // Mostrar el error específico si está disponible
-      if (error?.response?.data?.message) {
-        console.error('Mensaje de error de la API:', error.response.data.message);
-      }
+      // No mostrar error al usuario ya que es una operación secundaria
     }
   };
 
@@ -350,56 +307,22 @@ const HorariosPage = () => {
   // Eliminar horario
   const handleDeleteHorario = async (horario: Horario) => {
     try {
-      console.log('Horario original recibido:', horario);
+      console.log('Eliminando horario:', horario);
 
-      // Enriquecer el horario con IDs faltantes
-      const enrichedHorario = enrichHorarioWithIds(horario);
-      console.log('Horario enriquecido con IDs:', enrichedHorario);
-
-      // Verificar que el horario tenga los datos necesarios después del enriquecimiento
-      if (!enrichedHorario.aula_id || !enrichedHorario.dia_id || !enrichedHorario.bloque_id) {
-        console.error('Horario no tiene los datos necesarios para restaurar disponibilidad:', {
-          aula_id: enrichedHorario.aula_id,
-          dia_id: enrichedHorario.dia_id,
-          bloque_id: enrichedHorario.bloque_id,
-          aula_nombre: enrichedHorario.aula_nombre,
-          dia_nombre: enrichedHorario.dia_nombre,
-          bloque_nombre: enrichedHorario.bloque_nombre
-        });
-        showSnackbar('Error: No se pudieron obtener los datos necesarios del horario', 'error');
-        return;
-      }
-
-      // Eliminar el horario primero
-      console.log('Eliminando horario con ID:', enrichedHorario.horario_id);
-      await api.delete(`/api/horarios/eliminar/${enrichedHorario.horario_id}`);
-      console.log('Horario eliminado exitosamente');
+      // Eliminar el horario
+      await api.delete(`/api/horarios/eliminar/${horario.horario_id}`);
 
       // Agregar el aula de vuelta a disponibilidad con los datos correctos
-      console.log('Restaurando disponibilidad del aula:', {
-        aula_id: enrichedHorario.aula_id,
-        dia_id: enrichedHorario.dia_id,
-        bloque_id: enrichedHorario.bloque_id
-      });
-      
-      await addAulaToDisponibilidad(enrichedHorario.aula_id, enrichedHorario.dia_id, enrichedHorario.bloque_id);
+      await addAulaToDisponibilidad(horario.aula_id, horario.dia_id, horario.bloque_id);
 
       // Recargar horarios
       const response = await api.get('/api/horarios/vista');
       setHorarios(response.data);
 
       showSnackbar('Horario eliminado exitosamente', 'success');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting horario:', error);
-      
-      // Mostrar error específico si está disponible
-      if (error?.response?.data?.message) {
-        showSnackbar(`Error al eliminar horario: ${error.response.data.message}`, 'error');
-      } else if (error?.message) {
-        showSnackbar(`Error al eliminar horario: ${error.message}`, 'error');
-      } else {
-        showSnackbar('Error al eliminar horario', 'error');
-      }
+      showSnackbar('Error al eliminar horario', 'error');
     }
   };
 
