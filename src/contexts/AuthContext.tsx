@@ -125,7 +125,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       const decoded = jwtDecode<{ id: number }>(token);
       await fetchUserData(decoded.id);
-      navigate('/dashboard');
+      
+      // Redirigir según el rol del usuario
+      const userResponse = await api.get(`/api/usuarios/${decoded.id}`);
+      const userData = userResponse.data;
+      
+      const rolesResponse = await api.get('/api/usuarios-roles/vista');
+      const userRolesData = rolesResponse.data.filter(
+        (ur: any) => ur.usuario_nombre === userData.username
+      );
+      const roles = userRolesData.map((ur: any) => ur.rol_nombre);
+      
+      // Si el usuario es "usuario asignado", redirigir a horarios
+      if (roles.includes('usuario asignado')) {
+        navigate('/horarios');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       

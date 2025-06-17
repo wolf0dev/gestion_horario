@@ -108,7 +108,8 @@ const menuStructure = [
     text: 'Dashboard', 
     icon: <DashboardIcon size={20} />, 
     path: '/dashboard',
-    permissions: [] // Dashboard accesible para todos los usuarios autenticados
+    permissions: [], // Dashboard accesible para usuarios que NO sean "usuario asignado"
+    excludeRoles: ['usuario asignado'] // Excluir usuarios asignados del dashboard
   },
   { 
     text: 'Horarios', 
@@ -120,6 +121,7 @@ const menuStructure = [
     text: 'Recursos',
     icon: <SettingsIcon size={20} />,
     permissions: ['gestion_aulas', 'gestion_profesores'],
+    excludeRoles: ['usuario asignado'], // Excluir usuarios asignados
     children: [
       { 
         text: 'Aulas', 
@@ -151,6 +153,7 @@ const menuStructure = [
     text: 'Académico',
     icon: <BookIcon size={20} />,
     permissions: ['gestion_uc', 'gestion_trayectos'],
+    excludeRoles: ['usuario asignado'], // Excluir usuarios asignados
     children: [
       { 
         text: 'Unidades Curriculares', 
@@ -176,6 +179,7 @@ const menuStructure = [
     text: 'Disponibilidad',
     icon: <UserCheckIcon size={20} />,
     permissions: ['gestion_horarios'],
+    excludeRoles: ['usuario asignado'], // Excluir usuarios asignados
     children: [
       { 
         text: 'Profesores', 
@@ -195,6 +199,7 @@ const menuStructure = [
     text: 'Administración',
     icon: <UserCogIcon size={20} />,
     permissions: ['gestion_usuarios', 'gestion_roles'],
+    excludeRoles: ['usuario asignado'], // Excluir usuarios asignados
     children: [
       { 
         text: 'Usuarios', 
@@ -237,7 +242,7 @@ export default function MainLayout() {
   const [open, setOpen] = useState(!isMobile);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
-  const { logout, user, userRoles, hasAnyPermission } = useAuth();
+  const { logout, user, userRoles, hasAnyPermission, hasRole } = useAuth();
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -274,6 +279,15 @@ export default function MainLayout() {
 
   // Función para verificar si el usuario tiene acceso a un elemento del menú
   const hasMenuAccess = (item: any): boolean => {
+    // Verificar roles excluidos
+    if (item.excludeRoles && item.excludeRoles.length > 0) {
+      const hasExcludedRole = item.excludeRoles.some((role: string) => hasRole(role));
+      if (hasExcludedRole) {
+        return false;
+      }
+    }
+
+    // Verificar permisos requeridos
     if (!item.permissions || item.permissions.length === 0) {
       return true; // Si no hay permisos requeridos, es accesible para todos
     }

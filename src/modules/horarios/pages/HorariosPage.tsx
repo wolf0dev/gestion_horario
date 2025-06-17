@@ -46,7 +46,6 @@ interface HorarioForm {
   bloque_id: number;
   aula_id: number;
   profesor_id: number;
-  trayecto_id: number;
   color?: string;
   activo: boolean;
 }
@@ -143,6 +142,54 @@ const HorariosPage = () => {
     ) || null;
   };
 
+  // Función para eliminar aula de disponibilidad
+  const removeAulaFromDisponibilidad = async (aulaId: number, diaId: number, bloqueId: number) => {
+    try {
+      // Buscar la disponibilidad específica
+      const disponibilidadResponse = await api.get('/api/disponibilidad-aulas/vista');
+      const disponibilidades = disponibilidadResponse.data;
+      
+      const dia = diasSemana.find(d => d.dia_id === diaId);
+      const bloque = bloquesHorarios.find(b => b.bloque_id === bloqueId);
+      const aula = aulas.find(a => a.aula_id === aulaId);
+      
+      if (!dia || !bloque || !aula) {
+        console.error('No se encontraron datos para eliminar disponibilidad');
+        return;
+      }
+
+      const disponibilidad = disponibilidades.find((disp: any) => 
+        disp.dia_nombre === dia.nombre_dia && 
+        disp.bloque_nombre === bloque.nombre_bloque && 
+        (disp.aula_nombre === aula.codigo_aula || disp.aula_nombre === aula.aula_id.toString())
+      );
+
+      if (disponibilidad) {
+        await api.delete(`/api/disponibilidad-aulas/eliminar/${disponibilidad.disponibilidad_aula_id}`);
+        console.log('Disponibilidad de aula eliminada exitosamente');
+      }
+    } catch (error) {
+      console.error('Error eliminando disponibilidad de aula:', error);
+    }
+  };
+
+  // Función para agregar aula a disponibilidad
+  const addAulaToDisponibilidad = async (aulaId: number, diaId: number, bloqueId: number) => {
+    try {
+      const disponibilidadData = {
+        aula_id: aulaId,
+        dia_id: diaId,
+        bloque_id: bloqueId,
+      };
+
+      await api.post('/api/disponibilidad-aulas/registro', disponibilidadData);
+      console.log('Aula agregada a disponibilidad exitosamente');
+    } catch (error) {
+      console.error('Error agregando aula a disponibilidad:', error);
+      // No mostrar error al usuario ya que es una operación secundaria
+    }
+  };
+
   // Asignar horario
   const handleAssignHorario = async (values: HorarioForm) => {
     try {
@@ -155,7 +202,11 @@ const HorariosPage = () => {
         profesor_id: profesores[tabValue]?.profesor_id,
       };
 
+      // Crear el horario
       await api.post('/api/horarios/registro', horarioData);
+
+      // Eliminar el aula de disponibilidad
+      await removeAulaFromDisponibilidad(values.aula_id, selectedCell.dia, selectedCell.bloque);
 
       // Recargar horarios
       const response = await api.get('/api/horarios/vista');
@@ -164,9 +215,17 @@ const HorariosPage = () => {
       setOpenAssignDialog(false);
       setSelectedCell(null);
       showSnackbar('Horario asignado exitosamente', 'success');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error assigning horario:', error);
-      showSnackbar('Error al asignar horario', 'error');
+      
+      // Manejar error 409 específicamente
+      if (error?.response?.status === 409) {
+        showSnackbar('Error: Aula no disponible para este bloque y día', 'error');
+      } else if (error?.message) {
+        showSnackbar(`Error al asignar horario: ${error.message}`, 'error');
+      } else {
+        showSnackbar('Error al asignar horario', 'error');
+      }
     }
   };
 
@@ -175,6 +234,19 @@ const HorariosPage = () => {
     try {
       if (!currentHorario) return;
 
+      const aulaAnterior = currentHorario.aula_id;
+      const aulaNueva = values.aula_id;
+
+      // Si cambió el aula, manejar disponibilidad
+      if (aulaAnterior !== aulaNueva) {
+        // Agregar el aula anterior a disponibilidad
+        await addAulaToDisponibilidad(aulaAnterior, currentHorario.dia_id, currentHorario.bloque_id);
+        
+        // Eliminar la nueva aula de disponibilidad
+        await removeAulaFromDisponibilidad(aulaNueva, currentHorario.dia_id, currentHorario.bloque_id);
+      }
+
+      // Actualizar el horario
       await api.put('/api/horarios/actualizar', {
         ...values,
         horario_id: currentHorario.horario_id,
@@ -187,16 +259,28 @@ const HorariosPage = () => {
       setOpenEditDialog(false);
       setCurrentHorario(null);
       showSnackbar('Horario actualizado exitosamente', 'success');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating horario:', error);
-      showSnackbar('Error al actualizar horario', 'error');
+      
+      // Manejar error 409 específicamente
+      if (error?.response?.status === 409) {
+        showSnackbar('Error: Aula no disponible para este bloque y día', 'error');
+      } else if (error?.message) {
+        showSnackbar(`Error al actualizar horario: ${error.message}`, 'error');
+      } else {
+        showSnackbar('Error al actualizar horario', 'error');
+      }
     }
   };
 
   // Eliminar horario
   const handleDeleteHorario = async (horario: Horario) => {
     try {
+      // Eliminar el horario
       await api.delete(`/api/horarios/eliminar/${horario.horario_id}`);
+
+      // Agregar el aula de vuelta a disponibilidad
+      await addAulaToDisponibilidad(horario.aula_id, horario.dia_id, horario.bloque_id);
 
       // Recargar horarios
       const response = await api.get('/api/horarios/vista');
@@ -472,6 +556,8 @@ const HorariosPage = () => {
         trayectos={trayectos}
         trayectosUC={trayectosUC}
         aulas={aulas}
+        diasSemana={diasSemana}
+        bloquesHorarios={bloquesHorarios}
         onSubmit={handleUpdateHorario}
       />
 

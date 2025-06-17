@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -14,10 +14,12 @@ import {
   Select,
   MenuItem,
   FormHelperText,
+  Alert,
 } from '@mui/material';
 import { X as CloseIcon, Plus as PlusIcon } from 'lucide-react';
 import { Field } from 'formik';
 import GenericForm, { FormField } from '../../../components/generic/GenericForm';
+import api from '../../../services/api';
 
 interface AssignDialogProps {
   open: boolean;
@@ -127,9 +129,68 @@ const AssignDialog = ({
   onSubmit,
 }: AssignDialogProps) => {
   const theme = useTheme();
+  const [filteredTrayectosUC, setFilteredTrayectosUC] = useState<any[]>([]);
+  const [selectedTrayecto, setSelectedTrayecto] = useState<string>('');
+  const [availableAulas, setAvailableAulas] = useState<any[]>([]);
+  const [loadingAulas, setLoadingAulas] = useState(false);
+  const [aulaError, setAulaError] = useState<string>('');
 
+  // Cargar aulas disponibles cuando se selecciona día y bloque
   useEffect(() => {
-  }, [trayectos, trayectosUC, tabValue]);
+    const loadAvailableAulas = async () => {
+      if (!selectedCell) return;
+
+      setLoadingAulas(true);
+      setAulaError('');
+      
+      try {
+        // Obtener disponibilidad de aulas para el día y bloque específico
+        const response = await api.get('/api/disponibilidad-aulas/vista');
+        const disponibilidades = response.data;
+
+        // Filtrar aulas disponibles para este día y bloque
+        const aulasDisponibles = disponibilidades
+          .filter((disp: any) => {
+            const diaMatch = diasSemana.find(d => d.nombre_dia === disp.dia_nombre)?.dia_id === selectedCell.dia;
+            const bloqueMatch = bloquesHorarios.find(b => b.nombre_bloque === disp.bloque_nombre)?.bloque_id === selectedCell.bloque;
+            return diaMatch && bloqueMatch;
+          })
+          .map((disp: any) => {
+            // Encontrar el aula completa con todos sus datos
+            return aulas.find(aula => aula.codigo_aula === disp.aula_nombre || aula.aula_id.toString() === disp.aula_nombre);
+          })
+          .filter(Boolean); // Eliminar valores undefined
+
+        setAvailableAulas(aulasDisponibles);
+
+        if (aulasDisponibles.length === 0) {
+          setAulaError('No hay aulas disponibles para este día y bloque horario.');
+        }
+      } catch (error) {
+        console.error('Error loading available aulas:', error);
+        setAulaError('Error al cargar aulas disponibles.');
+        setAvailableAulas([]);
+      } finally {
+        setLoadingAulas(false);
+      }
+    };
+
+    if (open && selectedCell) {
+      loadAvailableAulas();
+    }
+  }, [selectedCell, open, diasSemana, bloquesHorarios, aulas]);
+
+  // Filtrar unidades curriculares por trayecto
+  useEffect(() => {
+    if (selectedTrayecto) {
+      const filtered = trayectosUC.filter(tuc => 
+        tuc.trayecto_id?.toString() === selectedTrayecto
+      );
+      setFilteredTrayectosUC(filtered);
+    } else {
+      setFilteredTrayectosUC(trayectosUC);
+    }
+  }, [selectedTrayecto, trayectosUC]);
 
   const initialValues = {
     trayecto_uc_id: '',
@@ -137,60 +198,70 @@ const AssignDialog = ({
     bloque_id: selectedCell?.bloque || '',
     aula_id: '',
     profesor_id: profesores[tabValue]?.profesor_id || '',
-    trayecto_id: '',
     color: '#1976d2',
     activo: true,
   };
 
   const formFields: FormField[] = [
     {
-      name: 'trayecto_id',
-      label: 'Trayecto',
+      name: 'trayecto_filter',
+      label: 'Filtrar por Trayecto (opcional)',
       type: 'select',
-      required: true,
-      options: trayectos.map(trayecto => ({
-        label: trayecto.nombre,
-        value: trayecto.trayecto_id
-      })),
+      required: false,
+      options: [
+        { label: 'Todos los trayectos', value: '' },
+        ...trayectos.map(trayecto => ({
+          label: trayecto.nombre,
+          value: trayecto.trayecto_id?.toString() || ''
+        }))
+      ],
       xs: 12,
-      sm: 6,
     },
     {
       name: 'trayecto_uc_id',
       label: 'Unidad Curricular',
       type: 'select',
       required: true,
-      options: trayectosUC.map(tuc => ({
-        label: `${tuc.uc_codigo || ''} - ${tuc.uc_nombre}`,
-        value: tuc.trayecto_uc_id
+      options: filteredTrayectosUC.map(tuc => ({
+        label: `${tuc.trayecto_nombre || ''} - ${tuc.uc_codigo || ''} - ${tuc.uc_nombre || ''}`,
+        value: tuc.trayecto_uc_id?.toString() || ''
       })),
       xs: 12,
-      sm: 6,
     },
     {
       name: 'aula_id',
-      label: 'Aula',
+      label: 'Aula Disponible',
       type: 'select',
       required: true,
-      options: aulas.map(aula => ({
+      options: availableAulas.map(aula => ({
         label: `${aula.codigo_aula} - ${aula.tipo_aula} (Cap: ${aula.capacidad})`,
-        value: aula.aula_id
+        value: aula.aula_id?.toString() || ''
       })),
       xs: 12,
+      disabled: loadingAulas || availableAulas.length === 0,
     },
   ];
 
-  const handleSubmit = (values: any) => {
-    const formattedValues = {
-      ...values,
-      trayecto_uc_id: Number(values.trayecto_uc_id),
-      dia_id: selectedCell?.dia || Number(values.dia_id),
-      bloque_id: selectedCell?.bloque || Number(values.bloque_id),
-      aula_id: Number(values.aula_id),
-      profesor_id: profesores[tabValue]?.profesor_id || Number(values.profesor_id),
-      trayecto_id: Number(values.trayecto_id),
-    };
-    onSubmit(formattedValues);
+  const handleSubmit = async (values: any) => {
+    try {
+      // Solo enviar los campos requeridos según el JSON de ejemplo
+      const formattedValues = {
+        trayecto_uc_id: Number(values.trayecto_uc_id),
+        dia_id: selectedCell?.dia || Number(values.dia_id),
+        bloque_id: selectedCell?.bloque || Number(values.bloque_id),
+        aula_id: Number(values.aula_id),
+        profesor_id: profesores[tabValue]?.profesor_id || Number(values.profesor_id),
+        color: values.color,
+        activo: values.activo,
+      };
+      
+      console.log('Enviando datos de horario:', formattedValues);
+      
+      // Llamar al onSubmit que manejará la creación del horario y eliminación de disponibilidad
+      await onSubmit(formattedValues);
+    } catch (error) {
+      console.error('Error en handleSubmit:', error);
+    }
   };
 
   return (
@@ -247,6 +318,18 @@ const AssignDialog = ({
           </Paper>
         )}
 
+        {aulaError && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {aulaError}
+          </Alert>
+        )}
+
+        {loadingAulas && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Cargando aulas disponibles...
+          </Alert>
+        )}
+
         <GenericForm
           title=""
           fields={formFields}
@@ -255,6 +338,44 @@ const AssignDialog = ({
           onCancel={onClose}
           submitButtonText="Asignar Clase"
           customFields={{
+            trayecto_filter: (field: any, formikProps: any) => (
+              <Field name="trayecto_filter">
+                {({ field: formikField, meta }: any) => (
+                  <FormControl 
+                    fullWidth 
+                    margin="normal" 
+                    error={meta.touched && meta.error ? true : false}
+                  >
+                    <InputLabel id="trayecto-filter-label">
+                      Filtrar por Trayecto (opcional)
+                    </InputLabel>
+                    <Select
+                      {...formikField}
+                      labelId="trayecto-filter-label"
+                      label="Filtrar por Trayecto (opcional)"
+                      onChange={(e) => {
+                        formikField.onChange(e);
+                        setSelectedTrayecto(e.target.value as string);
+                        // Limpiar la selección de UC cuando cambia el filtro
+                        formikProps.setFieldValue('trayecto_uc_id', '');
+                      }}
+                    >
+                      <MenuItem value="">
+                        <em>Todos los trayectos</em>
+                      </MenuItem>
+                      {trayectos.map((trayecto) => (
+                        <MenuItem key={trayecto.trayecto_id} value={trayecto.trayecto_id?.toString()}>
+                          {trayecto.nombre}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {meta.touched && meta.error && (
+                      <FormHelperText>{meta.error}</FormHelperText>
+                    )}
+                  </FormControl>
+                )}
+              </Field>
+            ),
             color: (field: any, formikProps: any) => (
               <Field name="color">
                 {({ field: formikField, meta }: any) => (
