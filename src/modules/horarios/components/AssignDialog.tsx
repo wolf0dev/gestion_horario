@@ -157,6 +157,12 @@ const AssignDialog = ({
           return;
         }
 
+        console.log('Verificando disponibilidad del profesor:', {
+          profesor: `${profesorActual.nombre} ${profesorActual.apellido}`,
+          dia: diaSeleccionado.nombre_dia,
+          bloque: bloqueSeleccionado.nombre_bloque
+        });
+
         // Obtener disponibilidad de profesores
         const response = await api.get('/api/disponibilidad-profesores/vista');
         const disponibilidades = response.data;
@@ -166,14 +172,18 @@ const AssignDialog = ({
         const disponibilidad = disponibilidades.find((disp: any) => {
           return disp.profesor_nombre === profesorNombreCompleto &&
                  disp.dia_nombre === diaSeleccionado.nombre_dia &&
-                 disp.bloque_nombre === bloqueSeleccionado.nombre_bloque;
+                 disp.bloque_nombre === bloqueSeleccionado.nombre_bloque &&
+                 disp.disponible === true; // Solo disponibilidades activas
         });
+
+        console.log('Disponibilidad encontrada:', disponibilidad);
 
         if (!disponibilidad) {
           setProfesorError(`El profesor ${profesorNombreCompleto} no está disponible para ${diaSeleccionado.nombre_dia} en el bloque ${bloqueSeleccionado.nombre_bloque}.`);
           setProfesorDisponible(false);
         } else {
           setProfesorDisponible(true);
+          console.log('✅ Profesor disponible');
         }
       } catch (error) {
         console.error('Error checking profesor availability:', error);
@@ -198,6 +208,19 @@ const AssignDialog = ({
       setAulaError('');
       
       try {
+        const diaSeleccionado = diasSemana.find(d => d.dia_id === selectedCell.dia);
+        const bloqueSeleccionado = bloquesHorarios.find(b => b.bloque_id === selectedCell.bloque);
+
+        if (!diaSeleccionado || !bloqueSeleccionado) {
+          setAulaError('Error al cargar información del día y bloque.');
+          return;
+        }
+
+        console.log('Cargando aulas disponibles para:', {
+          dia: diaSeleccionado.nombre_dia,
+          bloque: bloqueSeleccionado.nombre_bloque
+        });
+
         // Obtener disponibilidad de aulas para el día y bloque específico
         const response = await api.get('/api/disponibilidad-aulas/vista');
         const disponibilidades = response.data;
@@ -205,16 +228,29 @@ const AssignDialog = ({
         // Filtrar aulas disponibles para este día y bloque
         const aulasDisponibles = disponibilidades
           .filter((disp: any) => {
-            const diaMatch = diasSemana.find(d => d.nombre_dia === disp.dia_nombre)?.dia_id === selectedCell.dia;
-            const bloqueMatch = bloquesHorarios.find(b => b.nombre_bloque === disp.bloque_nombre)?.bloque_id === selectedCell.bloque;
-            return diaMatch && bloqueMatch;
+            const diaMatch = disp.dia_nombre === diaSeleccionado.nombre_dia;
+            const bloqueMatch = disp.bloque_nombre === bloqueSeleccionado.nombre_bloque;
+            const disponibleMatch = disp.disponible === true; // Solo aulas disponibles
+            
+            console.log(`Verificando aula ${disp.aula_nombre}:`, {
+              diaMatch,
+              bloqueMatch,
+              disponibleMatch,
+              disponible: disp.disponible
+            });
+            
+            return diaMatch && bloqueMatch && disponibleMatch;
           })
           .map((disp: any) => {
             // Encontrar el aula completa con todos sus datos
-            return aulas.find(aula => aula.codigo_aula === disp.aula_nombre || aula.aula_id.toString() === disp.aula_nombre);
+            return aulas.find(aula => 
+              aula.codigo_aula === disp.aula_nombre || 
+              aula.aula_id.toString() === disp.aula_nombre
+            );
           })
           .filter(Boolean); // Eliminar valores undefined
 
+        console.log('Aulas disponibles encontradas:', aulasDisponibles);
         setAvailableAulas(aulasDisponibles);
 
         if (aulasDisponibles.length === 0) {
@@ -300,6 +336,12 @@ const AssignDialog = ({
   const handleSubmit = async (values: any) => {
     try {
       if (!profesorDisponible) {
+        console.log('❌ No se puede asignar: profesor no disponible');
+        return;
+      }
+
+      if (availableAulas.length === 0) {
+        console.log('❌ No se puede asignar: no hay aulas disponibles');
         return;
       }
 
@@ -390,21 +432,27 @@ const AssignDialog = ({
           </Alert>
         )}
 
-        {aulaError && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            {aulaError}
-          </Alert>
-        )}
-
         {loadingAulas && (
           <Alert severity="info" sx={{ mb: 2 }}>
             Cargando aulas disponibles...
           </Alert>
         )}
 
-        {profesorDisponible && (
+        {aulaError && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {aulaError}
+          </Alert>
+        )}
+
+        {profesorDisponible && availableAulas.length > 0 && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            ✅ Profesor disponible para este horario
+            ✅ Profesor y aulas disponibles para este horario
+          </Alert>
+        )}
+
+        {profesorDisponible && availableAulas.length === 0 && !loadingAulas && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            ⚠️ Profesor disponible pero no hay aulas libres
           </Alert>
         )}
 
